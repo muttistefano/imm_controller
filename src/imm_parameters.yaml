@@ -1,0 +1,31 @@
+imm_controller:
+  joints: {
+    type: string_array,
+    default_value: [],
+    description: "Name of the joints to control",
+  }
+  interface_name: {
+    type: string,
+    default_value: "",
+    description: "Name of the interface to command",
+  }
+  robot_chain_root: {
+    type: string,
+    default_value: "",
+    description: "Name of the robot chain root",
+  }
+  robot_chain_tip: {
+    type: string,
+    default_value: "",
+    description: "Name of the robot chain tip",
+  }
+  amr_base_link: {
+    type: string,
+    default_value: "",
+    description: "Name of the mobile robot base link",
+  }
+  robot_description_topic: {
+    type: string,
+    default_value: "robot_description",
+    description: "Name of the robot description topic",
+  }
