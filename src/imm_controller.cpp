@@ -145,7 +145,7 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
   RCLCPP_WARN_STREAM(get_node()->get_logger(), "robotic joints " << _kdl_chain_robot.getNrOfJoints());
 
   _cmd_vel_pub_wrapped = get_node()->create_publisher<geometry_msgs::msg::Twist>(
-    "cmd_vel", rclcpp::SystemDefaultsQoS());
+    "/azrael/cmd_vel", rclcpp::SystemDefaultsQoS());
 
   _cmd_vel_pub_rt =
     std::make_unique<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>>(_cmd_vel_pub_wrapped);
@@ -228,7 +228,7 @@ controller_interface::CallbackReturn ImmController::on_deactivate(
 }
 
 controller_interface::return_type ImmController::update(
-  const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+  const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
 {
   auto twist_command = rt_command_ptr_.readFromRT();
 
@@ -238,27 +238,59 @@ controller_interface::return_type ImmController::update(
     return controller_interface::return_type::OK;
   }
 
+  // for (const auto & state_interface : state_interfaces_)
+  // {
+  //   std::string interface_name = state_interface.get_interface_name();
+  //   RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interface.get_value());
+  // }
+
   for (auto index = 0ul; index < state_interfaces_.size(); ++index)
   {
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
   
 
+
   _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
   // _jnt_to_pose_solver_robot->JntToCart(_q_robot, _fk_robot);
+  _jnt_to_pose_solver_imm->JntToCart(_q_robot, _fk_robot);
 
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
-  _q_robot_vel = _J_robot.data.inverse() * _tcp_vel;
+  _v_mm_base.topLeftCorner(3,3)     = Frame_to_Eigen(_fk_robot.M.data);
+  _v_mm_base.bottomRightCorner(3,3) = Frame_to_Eigen(_fk_robot.M.data);
+  _v_mm_base.topRightCorner(3,3)    = Skew(_fk_robot.p.data) * Frame_to_Eigen(_fk_robot.M.data);
 
-  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot \n" << _q_robot.data);
-  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
-  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
+  _mm_jac = _v_mm_base * _mm_vel;
+  _jac_complete << _J_robot.data,_mm_jac;
+
+  // _q_robot_vel = _J_robot.data.inverse() * _tcp_vel;
+  _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
+
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_mm_base \n" << _v_mm_base);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
   RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
+
+  _q_robot_vel = _q_robot_vel_all.head(6);
+  _q_robot_vel_mm = _q_robot_vel_all.tail<3>();
 
   for (auto index = 0ul; index < command_interfaces_.size(); ++index)
   {
-    command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (0.008 * _q_robot_vel(index)));
+    // command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (0.008 * _q_robot_vel(index)));
+    command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
+  }
+
+  if (_cmd_vel_pub_rt->trylock())
+  {
+    auto & msg = _cmd_vel_pub_rt->msg_;
+    _cmd_vel_pub_rt->msg_ = geometry_msgs::msg::Twist();
+    msg.linear.x  = _q_robot_vel_mm(0);
+    msg.linear.y  = _q_robot_vel_mm(1);
+    msg.angular.z = _q_robot_vel_mm(2);
+    _cmd_vel_pub_rt->unlockAndPublish();
   }
 
   // for (auto index = 0ul; index < state_interfaces_.size(); ++index)

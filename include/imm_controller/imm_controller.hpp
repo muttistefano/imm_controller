@@ -42,6 +42,8 @@
 #include <boost/scoped_ptr.hpp>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/LU>
+#include <eigen3/Eigen/QR>    
+
 
 namespace imm_controller
 {
@@ -119,6 +121,8 @@ protected:
   std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>> _cmd_vel_pub_rt;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_pub_wrapped;
 
+  // _cmd_vel_mm = geometry_msgs::msg::Twist();
+
   //KDL
 
   std::string _chain_root;
@@ -136,6 +140,20 @@ protected:
 
   Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,3,1> _q_robot_vel_mm {0.0,0.0,0.0};
+  Eigen::Matrix<double,9,1> _q_robot_vel_all {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,6,6> _v_mm_base = Eigen::Matrix<double,6,6>::Zero(6, 6);
+  Eigen::Matrix<double,6,3> _mm_vel {{1.0,0.0,0.0},
+                                     {0.0,1.0,0.0},
+                                     {0.0,0.0,0.0},
+                                     {0.0,0.0,0.0},
+                                     {0.0,0.0,0.0},
+                                     {0.0,0.0,1.0}};
+
+
+  Eigen::Matrix<double,6,3> _mm_jac;
+
+  Eigen::Matrix<double,6,9> _jac_complete = Eigen::Matrix<double,6,9>::Zero(6, 9);
 
   //PARAMS
   std::shared_ptr<ParamListener> param_listener_;
@@ -153,12 +171,19 @@ protected:
    e[5] = m.angular.z;
  }
 
-  template<class Derived>
-  inline Eigen::Matrix<typename Derived::Scalar, 3, 3> Skew(
-      const Eigen::MatrixBase<Derived> & vec) {
-    EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived, 3);
-    return (Eigen::Matrix<typename Derived::Scalar, 3, 3>() << 0.0, -vec[2], vec[1],
-        vec[2], 0.0, -vec[0], -vec[1], vec[0], 0.0).finished();
+
+  inline Eigen::Matrix3d Skew(double vec[3]) {
+    return (Eigen::Matrix3d() << 
+        0.0, -vec[2], vec[1],
+        vec[2], 0.0, -vec[0],
+        -vec[1], vec[0], 0.0).finished();
+  }
+
+  inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
+    return (Eigen::Matrix3d() << 
+        vec[0], vec[1], vec[2],
+        vec[3], vec[4], vec[5],
+        vec[6], vec[7], vec[8]).finished();
   }
 
 }  // namespace imm_controller
