@@ -281,7 +281,9 @@ controller_interface::return_type ImmController::update(
   _mm_jac = _v_mm_base * _mm_vel;
   _jac_complete << _J_robot.data,_mm_jac;
 
-  _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
+  // _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
+  auto jac_inv = pseudoInverse(_jac_complete);
+  _q_robot_vel_all =  jac_inv * _tcp_vel;
 
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_mm_base \n" << _v_mm_base);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
