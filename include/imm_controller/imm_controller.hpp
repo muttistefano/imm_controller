@@ -198,12 +198,30 @@ protected:
 // }
 
 
-Eigen::Matrix<double, 9, 6> pseudoInverse(const Eigen::Matrix<double, 6, 9> &a, double epsilon = std::numeric_limits<double>::epsilon())
-{
+// Eigen::Matrix<double, 9, 6> pseudoInverse(const Eigen::Matrix<double, 6, 9> &a, double epsilon = std::numeric_limits<double>::epsilon())
+// {
 
-	Eigen::JacobiSVD< Eigen::Matrix<double, 6, 9>> svd(a,Eigen::ComputeFullU | Eigen::ComputeFullV);
-	double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
-	return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+// 	Eigen::JacobiSVD< Eigen::Matrix<double, 6, 9>> svd(a,Eigen::ComputeFullU | Eigen::ComputeFullV);
+// 	double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
+// 	return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+// }
+
+template<typename MatType>
+using PseudoInverseType = Eigen::Matrix<typename MatType::Scalar, MatType::ColsAtCompileTime, MatType::RowsAtCompileTime>;
+
+template<typename MatType>
+PseudoInverseType<MatType> pseudoInverse(const MatType &a, double epsilon = std::numeric_limits<double>::epsilon())
+{
+	using WorkingMatType = Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, Eigen::Dynamic, 0,
+																			 MatType::MaxRowsAtCompileTime, MatType::MaxColsAtCompileTime>;
+	Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	svd.setThreshold(epsilon*std::max(a.cols(), a.rows()));
+	Eigen::Index rank = svd.rank();
+	Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, MatType::RowsAtCompileTime,
+								0, Eigen::BDCSVD<WorkingMatType>::MaxDiagSizeAtCompileTime, MatType::MaxRowsAtCompileTime>
+		tmp = svd.matrixU().leftCols(rank).adjoint();
+	tmp = svd.singularValues().head(rank).asDiagonal().inverse() * tmp;
+	return svd.matrixV().leftCols(rank) * tmp;
 }
 
 }  // namespace imm_controller
