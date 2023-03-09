@@ -258,7 +258,7 @@ controller_interface::return_type ImmController::update(
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
   
-  imm_controller::wrenchMsgToEigen(*(*twist_command),_base_vel);
+  imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
   _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
   _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
 
@@ -266,7 +266,9 @@ controller_interface::return_type ImmController::update(
 
   if(params_.only_robot)
   {
-    _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip * _base_vel;
+    auto pd = _v_root_tip * _J_robot.data;
+    _q_robot_vel =  pd.inverse() * _tcp_vel;
+    // _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip * _tcp_vel;
       for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
@@ -284,13 +286,13 @@ controller_interface::return_type ImmController::update(
   _mm_jac = _v_imm_tip * _mm_vel;
   _jac_complete << _J_robot.data,_mm_jac;
 
-  // _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _base_vel;
+  // _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
   auto jac_inv = pseudoInverse(_jac_complete);
-  _q_robot_vel_all =  jac_inv * _base_vel;
+  _q_robot_vel_all =  jac_inv * _tcp_vel;
 
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_imm_tip \n" << _v_imm_tip);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
-  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_base_vel \n" << _base_vel);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
 

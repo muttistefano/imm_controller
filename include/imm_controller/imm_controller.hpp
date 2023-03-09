@@ -140,8 +140,7 @@ protected:
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_robot;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
-  Eigen::Matrix<double,6,1> _tcp_vel  {0.0,0.0,0.0,0.0,0.0,0.0};
-  Eigen::Matrix<double,6,1> _base_vel {0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,3,1> _q_robot_vel_mm {0.0,0.0,0.0};
   Eigen::Matrix<double,9,1> _q_robot_vel_all {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
