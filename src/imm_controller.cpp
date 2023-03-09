@@ -262,13 +262,12 @@ controller_interface::return_type ImmController::update(
   _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
   _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
 
-  Adjoint_util(_v_root_tip,_fk_robot);
+  Adjoint_util(_v_root_tip,_fk_robot.Inverse());
 
   if(params_.only_robot)
   {
-    auto pd = _v_root_tip * _J_robot.data;
-    _q_robot_vel =  pd.inverse() * _tcp_vel;
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_root_tip \n" << _v_root_tip);
+    auto pd = _v_root_tip * _tcp_vel;
+    _q_robot_vel =  pd.inverse() * pd;
     // _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip * _tcp_vel;
       for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
