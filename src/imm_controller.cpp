@@ -84,10 +84,18 @@ controller_interface::CallbackReturn ImmController::read_parameters()
     return controller_interface::CallbackReturn::ERROR;
   }
 
+  // if (params_.only_robot.empty())
+  // {
+  //   RCLCPP_ERROR(get_node()->get_logger(), "'only_robot' parameter was empty");
+  //   return controller_interface::CallbackReturn::ERROR;
+  // }
+
   for (const auto & joint : params_.joints)
   {
     command_interface_types_.push_back(joint + "/" + params_.interface_name);
   }
+
+
 
   return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -243,20 +251,28 @@ controller_interface::return_type ImmController::update(
   //   std::string interface_name = state_interface.get_interface_name();
   //   RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interface.get_value());
   // }
-
+  //TODO check from joint broadcaster how they do
   for (auto index = 0ul; index < state_interfaces_.size(); ++index)
   {
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
   
-
-
-  _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
-  // _jnt_to_pose_solver_robot->JntToCart(_q_robot, _fk_robot);
-  _jnt_to_pose_solver_imm->JntToCart(_q_robot, _fk_robot);
-
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
+
+  if(params_.only_robot)
+  {
+    _q_robot_vel = _J_robot.data.inverse() * _tcp_vel;
+      for (auto index = 0ul; index < command_interfaces_.size(); ++index)
+    {
+      command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
+    }
+    return controller_interface::return_type::OK;
+  }
+
+  
+  _jnt_to_pose_solver_imm->JntToCart(_q_robot, _fk_robot);
 
   _v_mm_base.topLeftCorner(3,3)     = Frame_to_Eigen(_fk_robot.M.data);
   _v_mm_base.bottomRightCorner(3,3) = Frame_to_Eigen(_fk_robot.M.data);
@@ -265,13 +281,12 @@ controller_interface::return_type ImmController::update(
   _mm_jac = _v_mm_base * _mm_vel;
   _jac_complete << _J_robot.data,_mm_jac;
 
-  // _q_robot_vel = _J_robot.data.inverse() * _tcp_vel;
   _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
 
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_mm_base \n" << _v_mm_base);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
-  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
 
   _q_robot_vel = _q_robot_vel_all.head(6);
@@ -279,7 +294,6 @@ controller_interface::return_type ImmController::update(
 
   for (auto index = 0ul; index < command_interfaces_.size(); ++index)
   {
-    // command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (0.008 * _q_robot_vel(index)));
     command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
   }
 
@@ -292,12 +306,6 @@ controller_interface::return_type ImmController::update(
     msg.angular.z = _q_robot_vel_mm(2);
     _cmd_vel_pub_rt->unlockAndPublish();
   }
-
-  // for (auto index = 0ul; index < state_interfaces_.size(); ++index)
-  // {
-  //   RCLCPP_INFO_STREAM(get_node()->get_logger(), state_interfaces_[index].get_full_name() << " " << state_interfaces_[index].get_value());
-  // }
-  
 
   return controller_interface::return_type::OK;
 }

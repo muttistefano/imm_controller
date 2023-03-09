@@ -29,3 +29,8 @@ imm_controller:
     default_value: "robot_description",
     description: "Name of the robot description topic",
   }
+  only_robot: {
+    type: bool,
+    default_value: false,
+    description: "Whether to control the arm only or the whole imm",
+  }
