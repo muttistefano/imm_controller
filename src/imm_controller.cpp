@@ -254,7 +254,7 @@ controller_interface::return_type ImmController::update(
   //TODO check from joint broadcaster how they do
   for (auto index = 0ul; index < state_interfaces_.size(); ++index)
   {
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
   
