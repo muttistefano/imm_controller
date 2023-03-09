@@ -41,6 +41,7 @@
 #include <kdl/jntarray.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/LU>
 #include <eigen3/Eigen/QR>   
 #include <eigen3/Eigen/SVD> 
@@ -140,6 +141,7 @@ protected:
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_robot;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
+
   Eigen::Matrix<double,6,1> _base_vel  {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -177,25 +179,48 @@ protected:
  }
 
 
-  inline Eigen::Matrix3d Skew(double vec[3]) {
-    return (Eigen::Matrix3d() << 
-        0.0, -vec[2], vec[1],
-        vec[2], 0.0, -vec[0],
-        -vec[1], vec[0], 0.0).finished();
-  }
+  // inline Eigen::Matrix3d Skew(double vec[3]) {
+  //   return (Eigen::Matrix3d() << 
+  //       0.0, -vec[2], vec[1],
+  //       vec[2], 0.0, -vec[0],
+  //       -vec[1], vec[0], 0.0).finished();
+  // }
 
-  inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
-    return (Eigen::Matrix3d() << 
-        vec[0], vec[1], vec[2],
-        vec[3], vec[4], vec[5],
-        vec[6], vec[7], vec[8]).finished();
-  }
+  // inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
+  //   return (Eigen::Matrix3d() << 
+  //       vec[0], vec[1], vec[2],
+  //       vec[3], vec[4], vec[5],
+  //       vec[6], vec[7], vec[8]).finished();
+  // }
 
-  void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
+  // void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
+  // {
+  //   mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
+  //   mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
+  //   mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
+  // }
+
+void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
   {
-    mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
-    mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
-    mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
+    // translation
+    for (unsigned int i = 0; i < 3; ++i)
+      e(i, 3) = k.p[i];
+
+    // rotation matrix
+    for (unsigned int i = 0; i < 9; ++i)
+      e(i/3, i%3) = k.M.data[i];
+
+    // "identity" row
+    e(3,0) = 0.0;
+    e(3,1) = 0.0;
+    e(3,2) = 0.0;
+    e(3,3) = 1.0;
+  }
+
+  inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
+  {
+    (*wrench_of_b_b) << T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1),
+    T_b_a.linear()*wrench_of_a_in_a.block(3, 0, 3, 1) + ((Eigen::Matrix<double,3,1>)(T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1))).cross(T_b_a.translation());
   }
 
 template<typename MatType>

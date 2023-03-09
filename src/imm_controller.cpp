@@ -262,14 +262,16 @@ controller_interface::return_type ImmController::update(
   _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
   _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
 
-  Adjoint_util(_v_root_tip,_fk_robot.Inverse());
+  // Adjoint_util(_v_root_tip,_fk_robot.Inverse());
+  Eigen::Matrix<double,6,1> wrench_of_b_b;
+  Eigen::Affine3d aff;
+  transformKDLToEigenImpl(_fk_robot.Inverse(),aff);
+  spatialDualTranformation(_tcp_vel, aff, &_base_vel);
 
   if(params_.only_robot)
   {
-    auto pd = _v_root_tip * _tcp_vel;
-    _q_robot_vel =  _J_robot.data.inverse() * pd;
-    // _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip * _tcp_vel;
-      for (auto index = 0ul; index < command_interfaces_.size(); ++index)
+    _q_robot_vel =  _J_robot.data.inverse() * _base_vel;
+    for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
     }
