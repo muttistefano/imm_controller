@@ -267,7 +267,7 @@ controller_interface::return_type ImmController::update(
   if(params_.only_robot)
   {
     auto pd = _v_root_tip * _tcp_vel;
-    _q_robot_vel =  pd.inverse() * pd;
+    _q_robot_vel =  _J_robot.inverse() * pd;
     // _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip * _tcp_vel;
       for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
