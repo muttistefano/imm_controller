@@ -214,7 +214,8 @@ PseudoInverseType<MatType> pseudoInverse(const MatType &a, double epsilon = std:
 {
 	using WorkingMatType = Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, Eigen::Dynamic, 0,
 																			 MatType::MaxRowsAtCompileTime, MatType::MaxColsAtCompileTime>;
-	Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	// Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeFullU | Eigen::ComputeFullV);
 	svd.setThreshold(epsilon*std::max(a.cols(), a.rows()));
 	Eigen::Index rank = svd.rank();
 	Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, MatType::RowsAtCompileTime,
