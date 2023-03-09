@@ -134,16 +134,19 @@ protected:
   KDL::JntArray  _q_robot;
   KDL::Jacobian  _J_robot; 
   KDL::Frame     _fk_robot;
+  KDL::Frame     _fk_imm;
 
   boost::scoped_ptr<KDL::ChainJntToJacSolver> _jnt_to_jac_solver;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_robot;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
-  Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,6,1> _tcp_vel  {0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,6,1> _base_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,3,1> _q_robot_vel_mm {0.0,0.0,0.0};
   Eigen::Matrix<double,9,1> _q_robot_vel_all {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-  Eigen::Matrix<double,6,6> _v_mm_base = Eigen::Matrix<double,6,6>::Zero(6, 6);
+  Eigen::Matrix<double,6,6> _v_root_tip = Eigen::Matrix<double,6,6>::Zero(6, 6);
+  Eigen::Matrix<double,6,6> _v_imm_tip  = Eigen::Matrix<double,6,6>::Zero(6, 6);
   const Eigen::Matrix<double,6,3> _mm_vel {{1.0,0.0,0.0},
                                            {0.0,1.0,0.0},
                                            {0.0,0.0,0.0},
@@ -188,23 +191,12 @@ protected:
         vec[6], vec[7], vec[8]).finished();
   }
 
-// template<typename _Matrix_Type_>
-// _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
-// {
-
-// 	Eigen::JacobiSVD< _Matrix_Type_ > svd(a ,Eigen::ComputeThinU | Eigen::ComputeThinV);
-// 	double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
-// 	return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
-// }
-
-
-// Eigen::Matrix<double, 9, 6> pseudoInverse(const Eigen::Matrix<double, 6, 9> &a, double epsilon = std::numeric_limits<double>::epsilon())
-// {
-
-// 	Eigen::JacobiSVD< Eigen::Matrix<double, 6, 9>> svd(a,Eigen::ComputeFullU | Eigen::ComputeFullV);
-// 	double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
-// 	return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
-// }
+  void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
+  {
+    mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
+    mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
+    mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
+  }
 
 template<typename MatType>
 using PseudoInverseType = Eigen::Matrix<typename MatType::Scalar, MatType::ColsAtCompileTime, MatType::RowsAtCompileTime>;
