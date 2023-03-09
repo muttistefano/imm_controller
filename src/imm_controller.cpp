@@ -266,7 +266,7 @@ controller_interface::return_type ImmController::update(
 
   if(params_.only_robot)
   {
-    _q_robot_vel = _v_root_tip.inverse() * _J_robot.data.inverse() * _base_vel;
+    _q_robot_vel =  _J_robot.data.inverse() * _v_root_tip.inverse() * _base_vel;
       for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
