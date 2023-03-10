@@ -143,7 +143,8 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
   kdl_parser::treeFromString(_robot_description_msg,_kdl_tree);
   _kdl_tree.getChain(params_.robot_chain_root,params_.robot_chain_tip,_kdl_chain_robot);
   _kdl_tree.getChain(params_.amr_base_link,params_.robot_chain_tip,_kdl_chain_imm);
-  _jnt_to_jac_solver.reset(new KDL::ChainJntToJacSolver(_kdl_chain_robot));
+  _jnt_to_jac_solver_robot.reset(new KDL::ChainJntToJacSolver(_kdl_chain_robot));
+  _jnt_to_jac_solver_imm.reset(new KDL::ChainJntToJacSolver(_kdl_chain_imm));
   _jnt_to_pose_solver_robot.reset(new KDL::ChainFkSolverPos_recursive(_kdl_chain_robot));
   _jnt_to_pose_solver_imm.reset(new KDL::ChainFkSolverPos_recursive(_kdl_chain_imm));
 
@@ -259,18 +260,17 @@ controller_interface::return_type ImmController::update(
   }
   
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
-  _jnt_to_jac_solver->JntToJac(_q_robot, _J_robot);
-  _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
-
-  // Adjoint_util(_v_root_tip,_fk_robot.Inverse());
-  Eigen::Matrix<double,6,1> wrench_of_b_b;
-  Eigen::Affine3d aff;
-  transformKDLToEigenImpl(_fk_robot.Inverse(),aff);
-  spatialDualTranformation(_tcp_vel, aff, &_base_vel);
 
   if(params_.only_robot)
   {
+    _jnt_to_jac_solver_robot->JntToJac(_q_robot, _J_robot);
+    _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
+    Eigen::Affine3d aff_fk_robot;
+    transformKDLToEigenImpl(_fk_robot,aff_fk_robot);
+    spatialDualTranformation(_tcp_vel, aff_fk_robot, &_base_vel);
+
     _q_robot_vel =  _J_robot.data.inverse() * _base_vel;
+
     for (auto index = 0ul; index < command_interfaces_.size(); ++index)
     {
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
@@ -278,25 +278,28 @@ controller_interface::return_type ImmController::update(
     return controller_interface::return_type::OK;
   }
 
-  
+  _jnt_to_jac_solver_imm->JntToJac(_q_robot, _J_robot);
   _jnt_to_pose_solver_imm->JntToCart(_q_robot, _fk_imm);
 
-  _v_imm_tip.topLeftCorner(3,3)     = Frame_to_Eigen(_fk_imm.M.data);
-  _v_imm_tip.bottomRightCorner(3,3) = Frame_to_Eigen(_fk_imm.M.data);
-  _v_imm_tip.topRightCorner(3,3)    = Skew(_fk_imm.p.data) * Frame_to_Eigen(_fk_imm.M.data);
+  Eigen::Affine3d aff_fk_imm;
+  transformKDLToEigenImpl(_fk_imm,aff_fk_imm);
+  spatialDualTranformation(_tcp_vel, aff_fk_imm, &_base_vel);
 
-  _mm_jac = _v_imm_tip * _mm_vel;
+  _mm_jac.col(0) = _mm_vel.col(0);
+  _mm_jac.col(1) = _mm_vel.col(1);
+  _mm_jac.col(2) = _mm_vel.col(2);
+
   _jac_complete << _J_robot.data,_mm_jac;
+  
 
-  // _q_robot_vel_all = _jac_complete.completeOrthogonalDecomposition().pseudoInverse() * _tcp_vel;
   auto jac_inv = pseudoInverse(_jac_complete);
-  _q_robot_vel_all =  jac_inv * _tcp_vel;
+  _q_robot_vel_all =  jac_inv * _base_vel;
 
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_v_imm_tip \n" << _v_imm_tip);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
-  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
+  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
 
   _q_robot_vel = _q_robot_vel_all.head(6);
   _q_robot_vel_mm = _q_robot_vel_all.tail<3>();

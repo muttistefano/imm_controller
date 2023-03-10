@@ -137,7 +137,8 @@ protected:
   KDL::Frame     _fk_robot;
   KDL::Frame     _fk_imm;
 
-  boost::scoped_ptr<KDL::ChainJntToJacSolver> _jnt_to_jac_solver;
+  boost::scoped_ptr<KDL::ChainJntToJacSolver> _jnt_to_jac_solver_robot;
+  boost::scoped_ptr<KDL::ChainJntToJacSolver> _jnt_to_jac_solver_imm;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_robot;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
@@ -179,26 +180,36 @@ protected:
  }
 
 
-  // inline Eigen::Matrix3d Skew(double vec[3]) {
-  //   return (Eigen::Matrix3d() << 
-  //       0.0, -vec[2], vec[1],
-  //       vec[2], 0.0, -vec[0],
-  //       -vec[1], vec[0], 0.0).finished();
-  // }
+  inline Eigen::Matrix3d Skew(double vec[3]) {
+    return (Eigen::Matrix3d() << 
+        0.0, -vec[2], vec[1],
+        vec[2], 0.0, -vec[0],
+        -vec[1], vec[0], 0.0).finished();
+  }
 
-  // inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
-  //   return (Eigen::Matrix3d() << 
-  //       vec[0], vec[1], vec[2],
-  //       vec[3], vec[4], vec[5],
-  //       vec[6], vec[7], vec[8]).finished();
-  // }
+  inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
+    return (Eigen::Matrix3d() << 
+        vec[0], vec[1], vec[2],
+        vec[3], vec[4], vec[5],
+        vec[6], vec[7], vec[8]).finished();
+  }
 
-  // void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
-  // {
-  //   mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
-  //   mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
-  //   mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
-  // }
+  void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
+  {
+    mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
+    mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
+    mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
+  }
+
+  Eigen::Matrix<double,6,6> ja_to_j(double r,double p,double y)
+  {
+    Eigen::Matrix<double,6,6> mat = Eigen::Matrix<double,6,6>::Zero();
+    mat.topLeftCorner(3,3).diagonal() << 1, 1, 1;
+    Eigen::Matrix<double,3,3> mat_r;
+    mat_r << 1,0,sin(p),0,cos(r),-cos(p)*sin(r),0,sin(r),cos(p)*cos(r);
+    mat.bottomRightCorner(3,3) = mat_r.inverse();
+    return mat;
+  }
 
 void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
   {
@@ -245,3 +256,4 @@ PseudoInverseType<MatType> pseudoInverse(const MatType &a, double epsilon = std:
 }  // namespace imm_controller
 
 #endif  // IMM_CONTROLLER__FORWARD_CONTROLLERS_BASE_HPP_
+
