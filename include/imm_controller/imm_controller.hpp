@@ -147,21 +147,25 @@ protected:
   Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,3,1> _q_robot_vel_mm {0.0,0.0,0.0};
-  Eigen::Matrix<double,9,1> _q_robot_vel_all {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Matrix<double,Eigen::Dynamic,1> _q_robot_vel_all;
   Eigen::Matrix<double,6,6> _v_root_tip = Eigen::Matrix<double,6,6>::Zero(6, 6);
   Eigen::Matrix<double,6,6> _v_imm_tip  = Eigen::Matrix<double,6,6>::Zero(6, 6);
-  const Eigen::Matrix<double,6,3> _mm_vel {{1.0,0.0,0.0},
-                                           {0.0,1.0,0.0},
-                                           {0.0,0.0,0.0},
-                                           {0.0,0.0,0.0},
-                                           {0.0,0.0,0.0},
-                                           {0.0,0.0,1.0}};
+  const Eigen::Matrix<double,6,3> _mm_vel_omni {{1.0,0.0,0.0},
+                                                {0.0,1.0,0.0},
+                                                {0.0,0.0,0.0},
+                                                {0.0,0.0,0.0},
+                                                {0.0,0.0,0.0},
+                                                {0.0,0.0,1.0}};
+  const Eigen::Matrix<double,6,2> _mm_vel_diff {{1.0,0.0},
+                                                {0.0,0.0},
+                                                {0.0,0.0},
+                                                {0.0,0.0},
+                                                {0.0,0.0},
+                                                {0.0,1.0}};
 
 
 
-  Eigen::Matrix<double,6,3> _mm_jac;
-
-  Eigen::Matrix<double,6,9> _jac_complete = Eigen::Matrix<double,6,9>::Zero(6, 9);
+  Eigen::Matrix<double,6,Eigen::Dynamic> _jac_complete;
 
   //PARAMS
   std::shared_ptr<ParamListener> param_listener_;
