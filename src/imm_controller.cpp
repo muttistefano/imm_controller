@@ -299,7 +299,7 @@ controller_interface::return_type ImmController::update(
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_J_robot.data.inverse() \n" << _J_robot.data.inverse());
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel);
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel);
-  RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all);
 
   _q_robot_vel = _q_robot_vel_all.head(6);
   _q_robot_vel_mm = _q_robot_vel_all.tail<3>();

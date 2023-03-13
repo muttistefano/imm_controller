@@ -234,24 +234,31 @@ void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
     T_b_a.linear()*wrench_of_a_in_a.block(3, 0, 3, 1) + ((Eigen::Matrix<double,3,1>)(T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1))).cross(T_b_a.translation());
   }
 
-template<typename MatType>
-using PseudoInverseType = Eigen::Matrix<typename MatType::Scalar, MatType::ColsAtCompileTime, MatType::RowsAtCompileTime>;
+// template<typename MatType>
+// using PseudoInverseType = Eigen::Matrix<typename MatType::Scalar, MatType::ColsAtCompileTime, MatType::RowsAtCompileTime>;
 
-template<typename MatType>
-PseudoInverseType<MatType> pseudoInverse(const MatType &a, double epsilon = std::numeric_limits<double>::epsilon())
-{
-	using WorkingMatType = Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, Eigen::Dynamic, 0,
-																			 MatType::MaxRowsAtCompileTime, MatType::MaxColsAtCompileTime>;
-	// Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeFullU | Eigen::ComputeFullV);
-	svd.setThreshold(epsilon*std::max(a.cols(), a.rows()));
-	Eigen::Index rank = svd.rank();
-	Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, MatType::RowsAtCompileTime,
-								0, Eigen::BDCSVD<WorkingMatType>::MaxDiagSizeAtCompileTime, MatType::MaxRowsAtCompileTime>
-		tmp = svd.matrixU().leftCols(rank).adjoint();
-	tmp = svd.singularValues().head(rank).asDiagonal().inverse() * tmp;
-	return svd.matrixV().leftCols(rank) * tmp;
-}
+// template<typename MatType>
+// PseudoInverseType<MatType> pseudoInverse(const MatType &a, double epsilon = std::numeric_limits<double>::epsilon())
+// {
+// 	using WorkingMatType = Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, Eigen::Dynamic, 0,
+// 																			 MatType::MaxRowsAtCompileTime, MatType::MaxColsAtCompileTime>;
+// 	// Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+//   Eigen::BDCSVD<WorkingMatType> svd(a, Eigen::ComputeFullU | Eigen::ComputeFullV);
+// 	svd.setThreshold(epsilon*std::max(a.cols(), a.rows()));
+// 	Eigen::Index rank = svd.rank();
+// 	Eigen::Matrix<typename MatType::Scalar, Eigen::Dynamic, MatType::RowsAtCompileTime,
+// 								0, Eigen::BDCSVD<WorkingMatType>::MaxDiagSizeAtCompileTime, MatType::MaxRowsAtCompileTime>
+// 		tmp = svd.matrixU().leftCols(rank).adjoint();
+// 	tmp = svd.singularValues().head(rank).asDiagonal().inverse() * tmp;
+// 	return svd.matrixV().leftCols(rank) * tmp;
+// }
+
+Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& a, double epsilon = std::numeric_limits<double>::epsilon())
+ {
+     Eigen::JacobiSVD< Eigen::MatrixXd > svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+     double tolerance = epsilon * std::max(a.cols(), a.rows()) * svd.singularValues().array().abs()(0);
+     return svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+ }
 
 }  // namespace imm_controller
 
