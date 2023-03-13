@@ -16,11 +16,11 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   std_msgs
   geometry_msgs
   kdl_parser
-  libboost-dev
 )
 
 find_package(ament_cmake REQUIRED)
 find_package(backward_ros REQUIRED)
+find_package(Boost REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
