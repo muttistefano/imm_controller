@@ -117,15 +117,15 @@ controller_interface::CallbackReturn ImmController::on_init()
 
 controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  auto ret = this->read_parameters();
-  if (ret != controller_interface::CallbackReturn::SUCCESS)
+  
+  if (auto ret = this->read_parameters(), ret != controller_interface::CallbackReturn::SUCCESS)
   {
     return ret;
   }
 
   joints_command_subscriber_ = get_node()->create_subscription<CmdType>(
     "~/commands", rclcpp::SystemDefaultsQoS(),
-    [this](const CmdType::SharedPtr msg) { rt_command_ptr_.writeFromNonRT(msg); });
+    [this](const CmdType::SharedPtr msg) { this->rt_command_ptr_.writeFromNonRT(msg); });
 
 
   std::string _robot_description_msg = "";
@@ -269,7 +269,7 @@ controller_interface::return_type ImmController::update(
   //   RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interface.get_value());
   // }
   //TODO check from joint broadcaster how they do
-  for (auto index = 0ul; index < state_interfaces_.size(); ++index)
+  for (auto index = 0UL; index < state_interfaces_.size(); ++index)
   {
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
@@ -287,7 +287,7 @@ controller_interface::return_type ImmController::update(
 
     _q_robot_vel =  _J_robot.data.inverse() * _base_vel;
 
-    for (auto index = 0ul; index < command_interfaces_.size(); ++index)
+    for (auto index = 0UL; index < command_interfaces_.size(); ++index)
     {
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
     }
@@ -321,7 +321,7 @@ controller_interface::return_type ImmController::update(
   _q_robot_vel = _q_robot_vel_all.head(6);
   // _q_robot_vel_mm = _q_robot_vel_all.tail<3>();
 
-  for (auto index = 0ul; index < command_interfaces_.size(); ++index)
+  for (auto index = 0UL; index < command_interfaces_.size(); ++index)
   {
     command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
   }

@@ -66,7 +66,7 @@ public:
   ImmController();
 
   IMM_CONTROLLER_PUBLIC
-  ~ImmController() = default;
+  ~ImmController() final = default;
 
   IMM_CONTROLLER_PUBLIC
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
@@ -93,7 +93,7 @@ public:
   controller_interface::return_type update(
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-protected:
+private:
   /**
    * Derived controllers have to declare parameters in this method.
    * Error handling does not have to be done. It is done in `on_init`-method of this class.
@@ -123,7 +123,6 @@ protected:
   std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>> _cmd_vel_pub_rt;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_pub_wrapped;
 
-  // _cmd_vel_mm = geometry_msgs::msg::Twist();
 
   //KDL
 
@@ -184,14 +183,14 @@ protected:
  }
 
 
-  inline Eigen::Matrix3d Skew(double vec[3]) {
+  inline Eigen::Matrix3d Skew(const double vec[3]) {
     return (Eigen::Matrix3d() << 
         0.0, -vec[2], vec[1],
         vec[2], 0.0, -vec[0],
         -vec[1], vec[0], 0.0).finished();
   }
 
-  inline Eigen::Matrix3d Frame_to_Eigen(double  vec[9]) {
+  inline Eigen::Matrix3d Frame_to_Eigen(const double  vec[9]) {
     return (Eigen::Matrix3d() << 
         vec[0], vec[1], vec[2],
         vec[3], vec[4], vec[5],
@@ -205,7 +204,7 @@ protected:
     mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
   }
 
-  Eigen::Matrix<double,6,6> ja_to_j(double r,double p,double y)
+  Eigen::Matrix<double,6,6> ja_to_j(double r,double p)
   {
     Eigen::Matrix<double,6,6> mat = Eigen::Matrix<double,6,6>::Zero();
     mat.topLeftCorner(3,3).diagonal() << 1, 1, 1;
