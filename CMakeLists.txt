@@ -16,7 +16,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   std_msgs
   geometry_msgs
   kdl_parser
-  libboost-all-dev
+  libboost-dev
 )
 
 find_package(ament_cmake REQUIRED)
