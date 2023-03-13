@@ -118,7 +118,7 @@ controller_interface::CallbackReturn ImmController::on_init()
 controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_lifecycle::State & /*previous_state*/)
 {
   
-  if (auto ret = this->read_parameters(), ret != controller_interface::CallbackReturn::SUCCESS)
+  if (auto ret = this->read_parameters(); ret != controller_interface::CallbackReturn::SUCCESS)
   {
     return ret;
   }
