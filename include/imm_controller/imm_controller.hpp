@@ -255,7 +255,7 @@ void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
 
 template <class MatT>
 Eigen::Matrix<typename MatT::Scalar, MatT::ColsAtCompileTime, MatT::RowsAtCompileTime>
-pseudoInverse(const MatT &mat, typename MatT::Scalar tolerance = typename MatT::Scalar{1e-2}) // choose appropriately
+pseudoInverse(const MatT &mat, typename MatT::Scalar tolerance = typename MatT::Scalar{1e-12}) // choose appropriately
 {
     typedef typename MatT::Scalar Scalar;
     auto svd = mat.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
