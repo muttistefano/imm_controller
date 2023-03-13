@@ -151,7 +151,7 @@ protected:
   Eigen::Matrix<double,6,6> _v_root_tip = Eigen::Matrix<double,6,6>::Zero(6, 6);
   Eigen::Matrix<double,6,6> _v_imm_tip  = Eigen::Matrix<double,6,6>::Zero(6, 6);
   const Eigen::Matrix<double,6,3> _mm_vel {{1.0,0.0,0.0},
-                                           {0.0,1.0,0.0},
+                                           {0.0,-1.0,0.0},
                                            {0.0,0.0,0.0},
                                            {0.0,0.0,0.0},
                                            {0.0,0.0,0.0},
