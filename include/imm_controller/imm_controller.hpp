@@ -143,6 +143,8 @@ private:
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
 
+  Eigen::Matrix<double,6,1> _twist_integral {0.0,0.0,0.0,0.0,0.0,0.0};
+
   Eigen::Matrix<double,6,1> _base_vel  {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _q_robot_vel {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -231,6 +233,18 @@ void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
     e(3,2) = 0.0;
     e(3,3) = 1.0;
   }
+
+void KDLframetoV6(KDL::Frame frame_in,Eigen::Matrix<double,6,1> & V6)
+{
+  V6(0) = frame_in.p.data[0];
+  V6(1) = frame_in.p.data[1];
+  V6(2) = frame_in.p.data[2];
+  double r,p,y;
+  frame_in.M.GetRPY(r,p,y);
+  V6(3) = r;
+  V6(4) = p;
+  V6(5) = y;
+}
 
   inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
   {

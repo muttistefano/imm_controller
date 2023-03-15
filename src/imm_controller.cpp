@@ -240,6 +240,15 @@ controller_interface::CallbackReturn ImmController::on_activate(
   // reset command buffer if a command came through callback when controller was inactive
   rt_command_ptr_ = realtime_tools::RealtimeBuffer<std::shared_ptr<CmdType>>(nullptr);
 
+  for (auto index = 0UL; index < state_interfaces_.size(); ++index)
+  {
+    _q_robot.data(index) = state_interfaces_[index].get_value();
+  }
+
+  _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
+  KDLframetoV6(_fk_robot,_twist_integral);
+
+  RCLCPP_WARN_STREAM(get_node()->get_logger(), "Initial position : \n" << _twist_integral);
   RCLCPP_INFO(get_node()->get_logger(), "activate successful");
   return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -275,8 +284,15 @@ controller_interface::return_type ImmController::update(
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
-  
+
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+
+  _twist_integral(0) += _tcp_vel(0);
+  _twist_integral(1) += _tcp_vel(1);
+  _twist_integral(2) += _tcp_vel(2);
+  _twist_integral(3) += _tcp_vel(3);
+  _twist_integral(4) += _tcp_vel(4);
+  _twist_integral(5) += _tcp_vel(5);
 
   if(params_.only_robot)
   {
@@ -285,6 +301,13 @@ controller_interface::return_type ImmController::update(
     Eigen::Affine3d aff_fk_robot;
     transformKDLToEigenImpl(_fk_robot,aff_fk_robot);
     spatialDualTranformation(_tcp_vel, aff_fk_robot, &_base_vel);
+
+    Eigen::Matrix<double,6,1> fkV6;
+
+    KDLframetoV6(_fk_robot,fkV6);
+
+    auto error_cart = fkV6 - _twist_integral;
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
 
     _q_robot_vel =  _J_robot.data.inverse() * _base_vel;
 
