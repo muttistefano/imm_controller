@@ -261,9 +261,9 @@ private:
     // out(3) = angles::shortest_angular_distance(ref(3),feed(3)) * (double)sgn(feed(3)-ref(3));
     // out(4) = angles::shortest_angular_distance(ref(4),feed(4)) * (double)sgn(feed(4)-ref(4));
     // out(5) = angles::shortest_angular_distance(ref(5),feed(5)) * (double)sgn(feed(5)-ref(5));
-    out(3) = -1 * angles::shortest_angular_distance(feed(3),ref(3));
-    out(4) = -1 * angles::shortest_angular_distance(feed(4),ref(4));
-    out(5) = -1 * angles::shortest_angular_distance(feed(5),ref(5));
+    out(3) = -1 * angles::shortest_angular_distance(ref(3),feed(3));
+    out(4) = -1 * angles::shortest_angular_distance(ref(4),feed(4));
+    out(5) = -1 * angles::shortest_angular_distance(ref(5),feed(5));
 
     return out;
   }
