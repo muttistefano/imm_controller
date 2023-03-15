@@ -332,6 +332,8 @@ controller_interface::return_type ImmController::update(
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 
     // _q_robot_vel =  _J_robot.data.inverse() * (_base_vel + 0.1 * error_cart);
+    Eigen::Matrix< double, 6, 6> KK;
+    KK.diagonal() << 0.1, 0.1, 0.1, 0.1 , 0.1 ,0;
     _q_robot_vel =  _J_robot.data.inverse() * ( 0.1 * error_cart);
 
     for (auto index = 0UL; index < command_interfaces_.size(); ++index)
