@@ -275,7 +275,7 @@ controller_interface::return_type ImmController::update(
   {
     return controller_interface::return_type::OK;
     // _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
-  // }
+  }
   // else
   // {
     // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
