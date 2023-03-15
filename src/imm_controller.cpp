@@ -127,10 +127,6 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
     "~/commands", rclcpp::SystemDefaultsQoS(),
     [this](const CmdType::SharedPtr msg) { this->rt_command_ptr_.writeFromNonRT(msg); });
 
-  rt_command_ptr_.writeFromNonRT(std::shared_ptr<geometry_msgs::msg::Twist>());
-
-  
-
   std::string _robot_description_msg = "";
   
   auto robot_sub = get_node()->create_subscription<std_msgs::msg::String>(
@@ -245,7 +241,9 @@ controller_interface::CallbackReturn ImmController::on_activate(
   }
 
   // reset command buffer if a command came through callback when controller was inactive
-  // rt_command_ptr_ = realtime_tools::RealtimeBuffer<std::shared_ptr<CmdType>>(nullptr);
+  rt_command_ptr_ = realtime_tools::RealtimeBuffer<std::shared_ptr<CmdType>>(nullptr);
+  rt_command_ptr_.initRT(std::shared_ptr<geometry_msgs::msg::Twist>());
+  // rt_command_ptr_.
 
   for (auto index = 0UL; index < state_interfaces_.size(); ++index)
   {
