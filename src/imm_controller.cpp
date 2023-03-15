@@ -242,8 +242,6 @@ controller_interface::CallbackReturn ImmController::on_activate(
 
   // reset command buffer if a command came through callback when controller was inactive
   rt_command_ptr_ = realtime_tools::RealtimeBuffer<std::shared_ptr<CmdType>>(nullptr);
-  rt_command_ptr_.initRT(std::shared_ptr<geometry_msgs::msg::Twist>());
-  // rt_command_ptr_.
 
   for (auto index = 0UL; index < state_interfaces_.size(); ++index)
   {
@@ -273,10 +271,15 @@ controller_interface::return_type ImmController::update(
   auto twist_command = rt_command_ptr_.readFromRT();
 
   // no command received yet
-  // if (!twist_command || !(*twist_command))
-  // {
-  //   return controller_interface::return_type::OK;
-  // }
+  if (!twist_command || !(*twist_command))
+  {
+    // return controller_interface::return_type::OK;
+    imm_controller::wrenchMsgToEigen(geometry_msgs::msg::Twist(),_tcp_vel);
+  }
+  else
+  {
+    imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  }
 
   // for (const auto & state_interface : state_interfaces_)
   // {
@@ -290,7 +293,7 @@ controller_interface::return_type ImmController::update(
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
 
-  imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
   if(params_.only_robot)
   {
