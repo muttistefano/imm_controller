@@ -289,9 +289,9 @@ private:
 
     auto euler = q_diff.toRotationMatrix().eulerAngles(0, 1, 2);
 
-    out(3) = euler(0);
-    out(4) = euler(1);
-    out(5) = euler(2);
+    out(3) = -1 * euler(0);
+    out(4) = -1 * euler(1);
+    out(5) = -1 * euler(2);
 
     return out;
   }
