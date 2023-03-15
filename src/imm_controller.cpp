@@ -272,10 +272,10 @@ controller_interface::return_type ImmController::update(
   auto twist_command = rt_command_ptr_.readFromRT();
 
   // no command received yet
-  if (!twist_command || !(*twist_command))
-  {
-    return controller_interface::return_type::OK;
-  }
+  // if (!twist_command || !(*twist_command))
+  // {
+  //   return controller_interface::return_type::OK;
+  // }
 
   // for (const auto & state_interface : state_interfaces_)
   // {
