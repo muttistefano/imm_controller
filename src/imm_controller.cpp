@@ -127,6 +127,8 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
     "~/commands", rclcpp::SystemDefaultsQoS(),
     [this](const CmdType::SharedPtr msg) { this->rt_command_ptr_.writeFromNonRT(msg); });
 
+  rt_command_ptr_.writeFromNonRT(std::shared_ptr<geometry_msgs::msg::Twist>());
+  
 
   std::string _robot_description_msg = "";
   
