@@ -261,10 +261,10 @@ private:
     out(1) = ref(1) - feed(1);
     out(2) = ref(2) - feed(2);
 
-    // if(SameSign(ref(3),feed(3)))
-    // {
-
-    // }
+    if(SameSign(ref(3),feed(3)))
+    {
+      out(3) = ref(3) - feed(3);
+    }
 
     out(3) = feed(3) > 0 ? ref(3) - feed(3) : ref(3) - feed(3) + 6.28;
     out(4) = feed(4) > 0 ? ref(4) - feed(4) : ref(4) - feed(4) + 6.28;
