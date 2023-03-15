@@ -264,6 +264,25 @@ private:
     return out;
   }
 
+  // Eigen::Matrix<double, 6, 1> cartesian_error_quat(const Eigen::Matrix<double, 6, 1> ref, const KDL::Frame feed)
+  // {
+  //   Eigen::Matrix<double, 6, 1> out;
+  //   out(0) = ref(0) - feed.p.data[0];
+  //   out(1) = ref(1) - feed.p.data[1];
+  //   out(2) = ref(2) - feed.p.data[2];
+
+  //   auto _ref_quat = KDL::Rotation.RPY(ref(3),ref(4),ref(5));
+
+  //   out(3) = angles::shortest_angular_distance(ref(3),feed(3));
+  //   out(4) = angles::shortest_angular_distance(ref(4),feed(4));
+  //   out(5) = angles::shortest_angular_distance(ref(5),feed(5));
+  //   // out(3) = angles::shortest_angular_distance(feed(3),ref(3));
+  //   // out(4) = angles::shortest_angular_distance(feed(4),ref(4));
+  //   // out(5) = angles::shortest_angular_distance(feed(5),ref(5));
+
+  //   return out;
+  // }
+
   inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
   {
     (*wrench_of_b_b) << T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1),
