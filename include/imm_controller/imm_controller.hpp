@@ -248,8 +248,10 @@ private:
     V6(5) = y;
   }
 
-  // double rect_ang(double ang)
-  // {}
+  bool SameSign(double x, double y)
+  {
+      return (x >= 0) ^ (y < 0);
+  }
 
   Eigen::Matrix<double, 6, 1> cartesian_error(const Eigen::Matrix<double, 6, 1> ref, const Eigen::Matrix<double, 6, 1> feed)
   {
@@ -259,9 +261,14 @@ private:
     out(1) = ref(1) - feed(1);
     out(2) = ref(2) - feed(2);
 
-    out(4) = feed(3) > 0 ? ref(3) - feed(3) : ref(3) - feed(3) + 6.28;
-    out(5) = feed(4) > 0 ? ref(4) - feed(4) : ref(4) - feed(4) + 6.28;
-    out(6) = feed(5) > 0 ? ref(5) - feed(5) : ref(5) - feed(5) + 6.28;
+    // if(SameSign(ref(3),feed(3)))
+    // {
+
+    // }
+
+    out(3) = feed(3) > 0 ? ref(3) - feed(3) : ref(3) - feed(3) + 6.28;
+    out(4) = feed(4) > 0 ? ref(4) - feed(4) : ref(4) - feed(4) + 6.28;
+    out(5) = feed(5) > 0 ? ref(5) - feed(5) : ref(5) - feed(5) + 6.28;
 
     // out(3) = angles::shortest_angular_distance(ref(3),feed(3)) * (double)sgn(feed(3)-ref(3));
     // out(4) = angles::shortest_angular_distance(ref(4),feed(4)) * (double)sgn(feed(4)-ref(4));
