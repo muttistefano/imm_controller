@@ -287,12 +287,12 @@ controller_interface::return_type ImmController::update(
 
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
-  _twist_integral(0) += _tcp_vel(0);
-  _twist_integral(1) += _tcp_vel(1);
-  _twist_integral(2) += _tcp_vel(2);
-  _twist_integral(3) += _tcp_vel(3);
-  _twist_integral(4) += _tcp_vel(4);
-  _twist_integral(5) += _tcp_vel(5);
+  _twist_integral(0) += _tcp_vel(0) * period.seconds() ;
+  _twist_integral(1) += _tcp_vel(1) * period.seconds() ;
+  _twist_integral(2) += _tcp_vel(2) * period.seconds() ;
+  _twist_integral(3) += _tcp_vel(3) * period.seconds() ;
+  _twist_integral(4) += _tcp_vel(4) * period.seconds() ;
+  _twist_integral(5) += _tcp_vel(5) * period.seconds() ;
 
   if(params_.only_robot)
   {
@@ -308,6 +308,8 @@ controller_interface::return_type ImmController::update(
 
     auto error_cart = fkV6 - _twist_integral;
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 
     _q_robot_vel =  _J_robot.data.inverse() * (_base_vel + 0.1 * error_cart);
 
