@@ -306,7 +306,7 @@ controller_interface::return_type ImmController::update(
 
     KDLframetoV6(_fk_robot,fkV6);
 
-    auto error_cart = fkV6 - _twist_integral;
+    auto error_cart = _twist_integral - fkV6  ;
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
