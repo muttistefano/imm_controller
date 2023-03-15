@@ -273,13 +273,13 @@ controller_interface::return_type ImmController::update(
   // no command received yet
   if (!twist_command || !(*twist_command))
   {
-    // return controller_interface::return_type::OK;
-    _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
-  }
-  else
-  {
-    imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
-  }
+    return controller_interface::return_type::OK;
+    // _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
+  // }
+  // else
+  // {
+    // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  // }
 
   // for (const auto & state_interface : state_interfaces_)
   // {
@@ -316,7 +316,7 @@ controller_interface::return_type ImmController::update(
 
     // auto error_cart = _twist_integral - fkV6  ;
     auto error_cart = cartesian_error(_twist_integral,fkV6);
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 
     geometry_msgs::msg::Twist err_msg;
     err_msg.linear.x = error_cart(0);
