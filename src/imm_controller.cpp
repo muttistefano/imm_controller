@@ -309,7 +309,7 @@ controller_interface::return_type ImmController::update(
     auto error_cart = fkV6 - _twist_integral;
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
 
-    _q_robot_vel =  _J_robot.data.inverse() * _base_vel;
+    _q_robot_vel =  _J_robot.data.inverse() * (_base_vel + 0.1 * error_cart);
 
     for (auto index = 0UL; index < command_interfaces_.size(); ++index)
     {
