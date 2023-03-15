@@ -273,13 +273,13 @@ controller_interface::return_type ImmController::update(
   // no command received yet
   if (!twist_command || !(*twist_command))
   {
-    return controller_interface::return_type::OK;
-    // _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
+    // return controller_interface::return_type::OK;
+    _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
   }
-  // else
-  // {
-    // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
-  // }
+  else
+  {
+    imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  }
 
   // for (const auto & state_interface : state_interfaces_)
   // {
@@ -293,7 +293,7 @@ controller_interface::return_type ImmController::update(
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
 
-  imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
   if(params_.only_robot)
   {
@@ -314,9 +314,9 @@ controller_interface::return_type ImmController::update(
 
     KDLframetoV6(_fk_robot,fkV6);
 
-    auto error_cart = _twist_integral - fkV6;
+    // auto error_cart = _twist_integral - fkV6;
 
-    // auto error_cart = cartesian_error(_twist_integral,fkV6);
+    auto error_cart = cartesian_error(_twist_integral,fkV6);
     // auto error_cart = cartesian_error_quat(_twist_integral,fkV6);
     
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");

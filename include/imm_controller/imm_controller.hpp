@@ -265,10 +265,53 @@ private:
     {
       out(3) = ref(3) - feed(3);
     }
+    else if ((ref(3) - feed(3)) > M_PI )
+    {
+      out(3) = ref(3) - feed(3) - (M_PI * 2);
+    }
+    else if ((ref(3) - feed(3)) < -M_PI )
+    {
+      out(3) = ref(3) - feed(3) + (M_PI * 2);
+    }
+    else
+    {
+      out(3) = ref(3) - feed(3);
+    }
 
-    out(3) = feed(3) > 0 ? ref(3) - feed(3) : ref(3) - feed(3) + 6.28;
-    out(4) = feed(4) > 0 ? ref(4) - feed(4) : ref(4) - feed(4) + 6.28;
-    out(5) = feed(5) > 0 ? ref(5) - feed(5) : ref(5) - feed(5) + 6.28;
+    if(SameSign(ref(4),feed(4)))
+    {
+      out(4) = ref(4) - feed(4);
+    }
+    else if ((ref(4) - feed(4)) > M_PI )
+    {
+      out(4) = ref(4) - feed(4) - (M_PI * 2);
+    }
+    else if ((ref(4) - feed(4)) < -M_PI )
+    {
+      out(4) = ref(4) - feed(4) + (M_PI * 2);
+    }
+    else
+    {
+      out(4) = ref(4) - feed(4);
+    }
+
+    if(SameSign(ref(5),feed(5)))
+    {
+      out(5) = ref(5) - feed(5);
+    }
+    else if ((ref(5) - feed(5)) > M_PI )
+    {
+      out(5) = ref(5) - feed(5) - (M_PI * 2);
+    }
+    else if ((ref(5) - feed(5)) < -M_PI )
+    {
+      out(5) = ref(5) - feed(5) + (M_PI * 2);
+    }
+    else
+    {
+      out(5) = ref(5) - feed(5);
+    }
+
 
     // out(3) = angles::shortest_angular_distance(ref(3),feed(3)) * (double)sgn(feed(3)-ref(3));
     // out(4) = angles::shortest_angular_distance(ref(4),feed(4)) * (double)sgn(feed(4)-ref(4));
