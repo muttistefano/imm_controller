@@ -274,7 +274,7 @@ controller_interface::return_type ImmController::update(
   if (!twist_command || !(*twist_command))
   {
     // return controller_interface::return_type::OK;
-    imm_controller::wrenchMsgToEigen(geometry_msgs::msg::Twist(),_tcp_vel);
+    _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
   }
   else
   {
