@@ -293,7 +293,7 @@ controller_interface::return_type ImmController::update(
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
 
-  // imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
+  imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
   if(params_.only_robot)
   {
