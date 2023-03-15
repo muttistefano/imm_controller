@@ -255,6 +255,7 @@ controller_interface::CallbackReturn ImmController::on_deactivate(
 controller_interface::return_type ImmController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
 {
+  auto start = std::chrono::high_resolution_clock::now();
   auto twist_command = rt_command_ptr_.readFromRT();
 
   // no command received yet
@@ -344,7 +345,9 @@ controller_interface::return_type ImmController::update(
 
     _cmd_vel_pub_rt->unlockAndPublish();
   }
-
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  // RCLCPP_INFO_STREAM(get_node()->get_logger(), "duration \n" << duration.count() << "\n");
   return controller_interface::return_type::OK;
 }
 
