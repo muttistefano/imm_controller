@@ -314,8 +314,9 @@ controller_interface::return_type ImmController::update(
 
     KDLframetoV6(_fk_robot,fkV6);
 
-    // auto error_cart = _twist_integral - fkV6  ;
-    auto error_cart = cartesian_error(_twist_integral,fkV6);
+    // auto error_cart = cartesian_error(_twist_integral,fkV6);
+    auto error_cart = cartesian_error_quat(_twist_integral,fkV6);
+    
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
 

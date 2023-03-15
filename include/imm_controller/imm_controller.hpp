@@ -268,24 +268,33 @@ private:
     return out;
   }
 
-  // Eigen::Matrix<double, 6, 1> cartesian_error_quat(const Eigen::Matrix<double, 6, 1> ref, const KDL::Frame feed)
-  // {
-  //   Eigen::Matrix<double, 6, 1> out;
-  //   out(0) = ref(0) - feed.p.data[0];
-  //   out(1) = ref(1) - feed.p.data[1];
-  //   out(2) = ref(2) - feed.p.data[2];
+  Eigen::Matrix<double, 6, 1> cartesian_error_quat(const Eigen::Matrix<double, 6, 1> ref, const Eigen::Matrix<double, 6, 1> feed)
+  {
+    Eigen::Matrix<double, 6, 1> out;
+    out(0) = ref(0) - feed(0);
+    out(1) = ref(1) - feed(1);
+    out(2) = ref(2) - feed(2);
 
-  //   auto _ref_quat = KDL::Rotation.RPY(ref(3),ref(4),ref(5));
+    Eigen::Quaternion<double> q_ref;
+    q_ref = Eigen::AngleAxisd(ref(3), Eigen::Vector3d::UnitX())
+          * Eigen::AngleAxisd(ref(4), Eigen::Vector3d::UnitY())
+          * Eigen::AngleAxisd(ref(5), Eigen::Vector3d::UnitZ());
 
-  //   out(3) = angles::shortest_angular_distance(ref(3),feed(3));
-  //   out(4) = angles::shortest_angular_distance(ref(4),feed(4));
-  //   out(5) = angles::shortest_angular_distance(ref(5),feed(5));
-  //   // out(3) = angles::shortest_angular_distance(feed(3),ref(3));
-  //   // out(4) = angles::shortest_angular_distance(feed(4),ref(4));
-  //   // out(5) = angles::shortest_angular_distance(feed(5),ref(5));
+    Eigen::Quaternion<double> q_feed;
+    q_feed = Eigen::AngleAxisd(feed(3), Eigen::Vector3d::UnitX())
+           * Eigen::AngleAxisd(feed(4), Eigen::Vector3d::UnitY())
+           * Eigen::AngleAxisd(feed(5), Eigen::Vector3d::UnitZ());
 
-  //   return out;
-  // }
+    auto q_diff = q_ref * q_feed.inverse();
+
+    auto euler = q_diff.toRotationMatrix().eulerAngles(0, 1, 2);
+
+    out(3) = euler(0);
+    out(4) = euler(1);
+    out(5) = euler(2);
+
+    return out;
+  }
 
   inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
   {
