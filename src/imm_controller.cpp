@@ -320,7 +320,7 @@ controller_interface::return_type ImmController::update(
     err_msg.angular.x = error_cart(3);
     err_msg.angular.y = error_cart(4);
     err_msg.angular.z = error_cart(5);
-    _error_pub.pubblish(err_msg);
+    _error_pub->publish(err_msg);
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 
