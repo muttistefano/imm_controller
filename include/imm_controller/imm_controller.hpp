@@ -248,15 +248,19 @@ private:
     V6(5) = y;
   }
 
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
+  }
+
   Eigen::Matrix<double, 6, 1> cartesian_error(const Eigen::Matrix<double, 6, 1> ref, const Eigen::Matrix<double, 6, 1> feed)
   {
     Eigen::Matrix<double, 6, 1> out;
     out(0) = ref(0) - feed(0);
     out(1) = ref(1) - feed(1);
     out(2) = ref(2) - feed(2);
-    out(3) = angles::shortest_angular_distance(ref(3),feed(3));
-    out(4) = angles::shortest_angular_distance(ref(4),feed(4));
-    out(5) = angles::shortest_angular_distance(ref(5),feed(5));
+    out(3) = angles::shortest_angular_distance(ref(3),feed(3)) * sgn(ref(3)*feed(3));
+    out(4) = angles::shortest_angular_distance(ref(4),feed(4)) * sgn(ref(4)*feed(4));
+    out(5) = angles::shortest_angular_distance(ref(5),feed(5)) * sgn(ref(5)*feed(5));
     // out(3) = angles::shortest_angular_distance(feed(3),ref(3));
     // out(4) = angles::shortest_angular_distance(feed(4),ref(4));
     // out(5) = angles::shortest_angular_distance(feed(5),ref(5));
