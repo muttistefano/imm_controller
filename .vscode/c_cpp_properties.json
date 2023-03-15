@@ -28,7 +28,8 @@
                 "/opt/ros/rolling/include/kdl_parser",
                 "/usr/include/eigen3",
                 "/opt/ros/rolling/include/pluginlib",
-                "/opt/ros/rolling/include/tf2_eigen"
+                "/opt/ros/rolling/include/tf2_eigen",
+                "/opt/ros/rolling/include/angles"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -314,8 +314,9 @@ controller_interface::return_type ImmController::update(
 
     KDLframetoV6(_fk_robot,fkV6);
 
-    auto error_cart = _twist_integral - fkV6  ;
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
+    // auto error_cart = _twist_integral - fkV6  ;
+    auto error_cart = cartesian_error(_twist_integral,fkV6);
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
 
     geometry_msgs::msg::Twist err_msg;
     err_msg.linear.x = error_cart(0);

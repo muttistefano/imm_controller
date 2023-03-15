@@ -33,6 +33,7 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "angles/angles.h"
 #include "kdl_parser/kdl_parser.hpp"
 #include <kdl/chain.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
@@ -218,34 +219,46 @@ private:
     return mat;
   }
 
-void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
+  void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
+    {
+      // translation
+      for (unsigned int i = 0; i < 3; ++i)
+        e(i, 3) = k.p[i];
+
+      // rotation matrix
+      for (unsigned int i = 0; i < 9; ++i)
+        e(i/3, i%3) = k.M.data[i];
+
+      // "identity" row
+      e(3,0) = 0.0;
+      e(3,1) = 0.0;
+      e(3,2) = 0.0;
+      e(3,3) = 1.0;
+    }
+
+  void KDLframetoV6(KDL::Frame frame_in,Eigen::Matrix<double,6,1> & V6)
   {
-    // translation
-    for (unsigned int i = 0; i < 3; ++i)
-      e(i, 3) = k.p[i];
-
-    // rotation matrix
-    for (unsigned int i = 0; i < 9; ++i)
-      e(i/3, i%3) = k.M.data[i];
-
-    // "identity" row
-    e(3,0) = 0.0;
-    e(3,1) = 0.0;
-    e(3,2) = 0.0;
-    e(3,3) = 1.0;
+    V6(0) = frame_in.p.data[0];
+    V6(1) = frame_in.p.data[1];
+    V6(2) = frame_in.p.data[2];
+    double r,p,y;
+    frame_in.M.GetRPY(r,p,y);
+    V6(3) = r;
+    V6(4) = p;
+    V6(5) = y;
   }
 
-void KDLframetoV6(KDL::Frame frame_in,Eigen::Matrix<double,6,1> & V6)
-{
-  V6(0) = frame_in.p.data[0];
-  V6(1) = frame_in.p.data[1];
-  V6(2) = frame_in.p.data[2];
-  double r,p,y;
-  frame_in.M.GetRPY(r,p,y);
-  V6(3) = r;
-  V6(4) = p;
-  V6(5) = y;
-}
+  Eigen::Matrix<double, 6, 1> cartesian_error(const Eigen::Matrix<double, 6, 1> ref, const Eigen::Matrix<double, 6, 1> feed)
+  {
+    Eigen::Matrix<double, 6, 1> out;
+    out(0) = ref(0) - feed(0);
+    out(1) = ref(1) - feed(1);
+    out(2) = ref(2) - feed(2);
+    angles::shortest_angular_distance_with_limits(ref(3),feed(3),-3.14,3.14,out(3));
+    angles::shortest_angular_distance_with_limits(ref(4),feed(4),-3.14,3.14,out(4));
+    angles::shortest_angular_distance_with_limits(ref(5),feed(5),-3.14,3.14,out(5));
+    return out;
+  }
 
   inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
   {
