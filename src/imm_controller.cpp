@@ -155,6 +155,10 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
 
   _cmd_vel_pub_wrapped = get_node()->create_publisher<geometry_msgs::msg::Twist>(
     params_.cmd_vel_topic, rclcpp::SystemDefaultsQoS());
+  
+  _error_pub = get_node()->create_publisher<geometry_msgs::msg::Twist>(
+    "error_cartesian", rclcpp::SystemDefaultsQoS());
+
 
   _cmd_vel_pub_rt =
     std::make_unique<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>>(_cmd_vel_pub_wrapped);
@@ -287,13 +291,6 @@ controller_interface::return_type ImmController::update(
 
   imm_controller::wrenchMsgToEigen(*(*twist_command),_tcp_vel);
 
-  // _twist_integral(0) += _tcp_vel(0) * period.seconds() ;
-  // _twist_integral(1) += _tcp_vel(1) * period.seconds() ;
-  // _twist_integral(2) += _tcp_vel(2) * period.seconds() ;
-  // _twist_integral(3) += _tcp_vel(3) * period.seconds() ;
-  // _twist_integral(4) += _tcp_vel(4) * period.seconds() ;
-  // _twist_integral(5) += _tcp_vel(5) * period.seconds() ;
-
   if(params_.only_robot)
   {
     _jnt_to_jac_solver_robot->JntToJac(_q_robot, _J_robot);
@@ -315,6 +312,15 @@ controller_interface::return_type ImmController::update(
 
     auto error_cart = _twist_integral - fkV6  ;
     RCLCPP_INFO_STREAM(get_node()->get_logger(), "error_cart \n" << error_cart << "\n");
+
+    geometry_msgs::msg::Twist err_msg;
+    err_msg.linear.x = error_cart(0);
+    err_msg.linear.y = error_cart(1);
+    err_msg.linear.z = error_cart(2);
+    err_msg.angular.x = error_cart(3);
+    err_msg.angular.y = error_cart(4);
+    err_msg.angular.z = error_cart(5);
+    _error_pub.publish(err_msg);
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 

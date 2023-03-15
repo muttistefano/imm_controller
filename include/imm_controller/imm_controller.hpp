@@ -123,6 +123,7 @@ private:
 
   std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>> _cmd_vel_pub_rt;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_pub_wrapped;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _error_pub;
 
 
   //KDL
