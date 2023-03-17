@@ -255,11 +255,13 @@ controller_interface::CallbackReturn ImmController::on_activate(
   {
     _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
     KDLframetoV6(_fk_robot,_twist_integral);
+    transformKDLToEigenImpl(_fk_robot,_space_integral);
   }
   else
   {
     _jnt_to_pose_solver_imm->JntToCart(_q_robot, _fk_imm);
     KDLframetoV6(_fk_imm,_twist_integral);
+    transformKDLToEigenImpl(_fk_imm,_space_integral);
   }
 
   RCLCPP_WARN_STREAM(get_node()->get_logger(), "Initial position : \n" << _twist_integral);
@@ -284,7 +286,8 @@ controller_interface::return_type ImmController::update(
   // no command received yet
   if (!twist_command || !(*twist_command))
   {
-    // return controller_interface::return_type::OK;
+    return controller_interface::return_type::OK;
+    RCLCPP_WARN_STREAM(get_node()->get_logger(), "Empty command" << "\n");
     _tcp_vel << 0.0,0.0,0.0,0.0,0.0,0.0;
   }
   else
@@ -313,31 +316,28 @@ controller_interface::return_type ImmController::update(
     _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
     Eigen::Affine3d aff_fk_robot;
     transformKDLToEigenImpl(_fk_robot,aff_fk_robot);
+    // spatialRotation(_tcp_vel,aff_fk_robot.inverse().linear(),&_base_vel);
     spatialRotation(_tcp_vel,aff_fk_robot.inverse().linear(),&_base_vel);
-    // spatialRotation(_tcp_vel,aff_fk_robot.linear(),&_base_vel);
+    
 
-    // Eigen::Matrix<double, 6, 6> adj;
-    // Adjoint_util(adj,_fk_robot);
 
-    // _base_vel = adj*_tcp_vel;
+    // _space_integral = _base_vel!=Eigen::Matrix<double, 6, 1>::Zero() ?  spatialIntegration(aff_fk_robot,_base_vel,period.seconds()) : _space_integral;
+    // _space_integral = spatialIntegration(_space_integral,_base_vel,period.seconds());
+    Eigen::Affine3d new_int = spatialIntegration(aff_fk_robot,_base_vel,period.seconds());
+    _space_integral = new_int;
+    _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
 
-    Eigen::Affine3d refff = spatialIntegration(aff_fk_robot,_base_vel,period.seconds());
-
-    // _twist_integral << refff.translation(),refff.linear().eulerAngles(0,1,2);
-
-    _twist_integral += _base_vel * period.seconds() ;
 
     Eigen::Matrix<double,6,1> fkV6;
     KDLframetoV6(_fk_robot,fkV6);
     auto error_cart = cartesian_error(_twist_integral,fkV6);
     
     
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "refff.linear \n" << refff.linear() << "\n");
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "refff.translation() \n" << refff.translation() << "\n");
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "refff.linear().eulerAngles(0,1,2) \n" << refff.linear().eulerAngles(0,1,2) << "\n");
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_tcp_vel \n" << _tcp_vel << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.linear.eulerAngles(2,1,0) \n" << _space_integral.linear().eulerAngles(2,1,0) << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.translation() \n" << _space_integral.translation() << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_base_vel \n" << _base_vel << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
     
 
     geometry_msgs::msg::Twist err_msg;
@@ -364,8 +364,6 @@ controller_interface::return_type ImmController::update(
     fk_msg.angular.y = fkV6(4);
     fk_msg.angular.z = fkV6(5);
     _fk_pub->publish(fk_msg);
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
 
     Eigen::Matrix< double, 6, 6> KK = Eigen::Matrix< double, 6, 6>::Zero();
     KK.diagonal() << 0.3, 0.3, 0.3, 0.3 , 0.3 , 0.3;
@@ -373,7 +371,7 @@ controller_interface::return_type ImmController::update(
     // _q_robot_vel =  ((_J_robot.data.inverse() * (error_cart ))  * 2) + (_J_robot.data.inverse() * _base_vel);
     _q_robot_vel =  (_J_robot.data.inverse() * _base_vel);
     
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel << "\n");
 
     for (auto index = 0UL; index < command_interfaces_.size(); ++index)
     {

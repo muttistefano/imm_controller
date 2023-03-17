@@ -149,6 +149,7 @@ private:
   int cnt = 0;
 
   Eigen::Matrix<double,6,1> _twist_integral {0.0,0.0,0.0,0.0,0.0,0.0};
+  Eigen::Affine3d           _space_integral;
 
   Eigen::Matrix<double,6,1> _base_vel  {0.0,0.0,0.0,0.0,0.0,0.0};
   Eigen::Matrix<double,6,1> _tcp_vel {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -191,36 +192,36 @@ private:
  }
 
 
-  inline Eigen::Matrix3d Skew(const double vec[3]) {
-    return (Eigen::Matrix3d() << 
-        0.0, -vec[2], vec[1],
-        vec[2], 0.0, -vec[0],
-        -vec[1], vec[0], 0.0).finished();
-  }
+  // inline Eigen::Matrix3d Skew(const double vec[3]) {
+  //   return (Eigen::Matrix3d() << 
+  //       0.0, -vec[2], vec[1],
+  //       vec[2], 0.0, -vec[0],
+  //       -vec[1], vec[0], 0.0).finished();
+  // }
 
-  inline Eigen::Matrix3d Frame_to_Eigen(const double  vec[9]) {
-    return (Eigen::Matrix3d() << 
-        vec[0], vec[1], vec[2],
-        vec[3], vec[4], vec[5],
-        vec[6], vec[7], vec[8]).finished();
-  }
+  // inline Eigen::Matrix3d Frame_to_Eigen(const double  vec[9]) {
+  //   return (Eigen::Matrix3d() << 
+  //       vec[0], vec[1], vec[2],
+  //       vec[3], vec[4], vec[5],
+  //       vec[6], vec[7], vec[8]).finished();
+  // }
 
-  void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
-  {
-    mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
-    mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
-    mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
-  }
+  // void Adjoint_util(Eigen::Matrix<double,6,6> & mat, KDL::Frame frame)
+  // {
+  //   mat.topLeftCorner(3,3)     = Frame_to_Eigen(frame.M.data);
+  //   mat.bottomRightCorner(3,3) = Frame_to_Eigen(frame.M.data);
+  //   mat.topRightCorner(3,3)    = Skew(frame.p.data) * Frame_to_Eigen(frame.M.data);
+  // }
 
-  Eigen::Matrix<double,6,6> ja_to_j(double r,double p)
-  {
-    Eigen::Matrix<double,6,6> mat = Eigen::Matrix<double,6,6>::Zero();
-    mat.topLeftCorner(3,3).diagonal() << 1, 1, 1;
-    Eigen::Matrix<double,3,3> mat_r;
-    mat_r << 1,0,sin(p),0,cos(r),-cos(p)*sin(r),0,sin(r),cos(p)*cos(r);
-    mat.bottomRightCorner(3,3) = mat_r.inverse();
-    return mat;
-  }
+  // Eigen::Matrix<double,6,6> ja_to_j(double r,double p)
+  // {
+  //   Eigen::Matrix<double,6,6> mat = Eigen::Matrix<double,6,6>::Zero();
+  //   mat.topLeftCorner(3,3).diagonal() << 1, 1, 1;
+  //   Eigen::Matrix<double,3,3> mat_r;
+  //   mat_r << 1,0,sin(p),0,cos(r),-cos(p)*sin(r),0,sin(r),cos(p)*cos(r);
+  //   mat.bottomRightCorner(3,3) = mat_r.inverse();
+  //   return mat;
+  // }
 
   void transformKDLToEigenImpl(const KDL::Frame &k, Eigen::Affine3d &e)
     {
@@ -246,9 +247,9 @@ private:
     V6(2) = frame_in.p.data[2];
     double r,p,y;
     frame_in.M.GetRPY(r,p,y);
-    V6(3) = r;
+    V6(3) = y;
     V6(4) = p;
-    V6(5) = y;
+    V6(5) = r;
   }
 
   bool SameSign(double x, double y)
@@ -330,7 +331,8 @@ private:
     (*vec6_of_a_in_c) << rot_b_c*vec6_of_a_in_b.block(0, 0, 3, 1), rot_b_c*vec6_of_a_in_b.block(3, 0, 3, 1);
   }
 
-  inline Eigen::Affine3d spatialIntegration(const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>& twist_of_a_in_b, const double& dt)
+
+  inline Eigen::Affine3d spatialIntegration(const Eigen::Affine3d T_b_a, Eigen::Matrix<double,6,1>& twist_of_a_in_b, const double& dt)
   {
     Eigen::Affine3d T_b_ap=T_b_a;
     T_b_ap.translation()+=twist_of_a_in_b.head(3)*dt;
@@ -341,6 +343,9 @@ private:
     T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
     return T_b_ap;
   }
+
+
+
 
 // template<typename MatType>
 // using PseudoInverseType = Eigen::Matrix<typename MatType::Scalar, MatType::ColsAtCompileTime, MatType::RowsAtCompileTime>;
