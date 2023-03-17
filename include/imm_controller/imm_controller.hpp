@@ -125,6 +125,8 @@ private:
   std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>> _cmd_vel_pub_rt;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_pub_wrapped;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _error_pub;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _fk_pub;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _tw_pub;
 
 
   //KDL
@@ -144,6 +146,7 @@ private:
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_robot;
   boost::scoped_ptr<KDL::ChainFkSolverPos>    _jnt_to_pose_solver_imm;
 
+  int cnt = 0;
 
   Eigen::Matrix<double,6,1> _twist_integral {0.0,0.0,0.0,0.0,0.0,0.0};
 
@@ -312,54 +315,31 @@ private:
       out(5) = ref(5) - feed(5);
     }
 
-
-    // out(3) = angles::shortest_angular_distance(ref(3),feed(3)) * (double)sgn(feed(3)-ref(3));
-    // out(4) = angles::shortest_angular_distance(ref(4),feed(4)) * (double)sgn(feed(4)-ref(4));
-    // out(5) = angles::shortest_angular_distance(ref(5),feed(5)) * (double)sgn(feed(5)-ref(5));
-    // auto r_err = angles::shortest_angular_distance(ref(3),feed(3));
-    // auto p_err = angles::shortest_angular_distance(ref(4),feed(4));
-    // auto y_err = angles::shortest_angular_distance(ref(5),feed(5));
-
-    // out(4) = std::abs(r_err) < 2 ? r_err : angles::normalize_angle(r_err);
-    // out(5) = std::abs(p_err) < 2 ? p_err : angles::normalize_angle(p_err);
-    // out(6) = std::abs(y_err) < 2 ? y_err : angles::normalize_angle(y_err);
-
     return out;
   }
 
-  Eigen::Matrix<double, 6, 1> cartesian_error_quat(const Eigen::Matrix<double, 6, 1> ref, const Eigen::Matrix<double, 6, 1> feed)
-  {
-    Eigen::Matrix<double, 6, 1> out;
-    out(0) = ref(0) - feed(0);
-    out(1) = ref(1) - feed(1);
-    out(2) = ref(2) - feed(2);
-
-    Eigen::Quaternion<double> q_ref;
-    q_ref = Eigen::AngleAxisd(ref(3), Eigen::Vector3d::UnitX())
-          * Eigen::AngleAxisd(ref(4), Eigen::Vector3d::UnitY())
-          * Eigen::AngleAxisd(ref(5), Eigen::Vector3d::UnitZ());
-
-    Eigen::Quaternion<double> q_feed;
-    q_feed = Eigen::AngleAxisd(feed(3), Eigen::Vector3d::UnitX())
-           * Eigen::AngleAxisd(feed(4), Eigen::Vector3d::UnitY())
-           * Eigen::AngleAxisd(feed(5), Eigen::Vector3d::UnitZ());
-
-    // auto q_diff = q_ref * q_feed.inverse();
-    auto q_diff = q_ref.inverse() * q_feed;
-
-    auto euler = q_diff.toRotationMatrix().eulerAngles(0, 1, 2);
-
-    out(3) = euler(0);
-    out(4) = euler(1);
-    out(5) = euler(2);
-
-    return out;
-  }
 
   inline void spatialDualTranformation(const Eigen::Matrix<double,6,1>& wrench_of_a_in_a, const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>* wrench_of_b_b)
   {
     (*wrench_of_b_b) << T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1),
     T_b_a.linear()*wrench_of_a_in_a.block(3, 0, 3, 1) + ((Eigen::Matrix<double,3,1>)(T_b_a.linear()*wrench_of_a_in_a.block(0, 0, 3, 1))).cross(T_b_a.translation());
+  }
+
+  inline void spatialRotation(const Eigen::Matrix<double,6,1>& vec6_of_a_in_b, const Eigen::Matrix3d& rot_b_c, Eigen::Matrix<double,6,1>* vec6_of_a_in_c)
+  {
+    (*vec6_of_a_in_c) << rot_b_c*vec6_of_a_in_b.block(0, 0, 3, 1), rot_b_c*vec6_of_a_in_b.block(3, 0, 3, 1);
+  }
+
+  inline Eigen::Affine3d spatialIntegration(const Eigen::Affine3d& T_b_a, Eigen::Matrix<double,6,1>& twist_of_a_in_b, const double& dt)
+  {
+    Eigen::Affine3d T_b_ap=T_b_a;
+    T_b_ap.translation()+=twist_of_a_in_b.head(3)*dt;
+
+    Eigen::Matrix<double,3,1> w_a_in_a=T_b_a.linear().transpose()*twist_of_a_in_b.tail(3);
+    double amplitude=w_a_in_a.norm();
+    Eigen::AngleAxisd R_ap_in_a=Eigen::AngleAxisd(amplitude*dt,w_a_in_a/amplitude);
+    T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
+    return T_b_ap;
   }
 
 // template<typename MatType>
