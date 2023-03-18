@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <math.h>
 
 #include "imm_controller_parameters.hpp"
 
@@ -245,11 +246,11 @@ private:
     V6(0) = frame_in.p.data[0];
     V6(1) = frame_in.p.data[1];
     V6(2) = frame_in.p.data[2];
-    double r,p,y;
-    frame_in.M.GetRPY(r,p,y);
-    V6(3) = y;
-    V6(4) = p;
-    V6(5) = r;
+    double x,y,z;
+    frame_in.M.GetEulerZYX(z,y,x);
+    V6(3) = x;
+    V6(4) = y;
+    V6(5) = z;
   }
 
   bool SameSign(double x, double y)
@@ -345,6 +346,25 @@ private:
   }
 
 
+
+  Eigen::Matrix<double,3,1> eig_to_RPY(Eigen::Matrix3d R) 
+  {
+    double roll;
+    double pitch;
+    double yaw;
+    double epsilon=1E-12;
+    pitch = atan2(-R(2,0), sqrt( KDL::sqr(R(0,0)) + KDL::sqr(R(1,0)) )  );
+        if ( fabs(pitch) > (M_PI/2.0-epsilon) ) {
+            yaw = atan2(	-R(0,1), R(1,1));
+            roll  = 0.0 ;
+        } else {
+            roll  = atan2(R(2,1), R(2,2));
+            yaw   = atan2(R(1,0), R(0,0));
+        }
+    Eigen::Matrix<double,3,1> out;
+    out << roll,pitch,yaw;
+    return out;
+  }
 
 
 // template<typename MatType>

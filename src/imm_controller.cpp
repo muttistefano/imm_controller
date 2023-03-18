@@ -129,15 +129,22 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
 
   std::string _robot_description_msg = "";
   
-  auto robot_sub = get_node()->create_subscription<std_msgs::msg::String>(
-    params_.robot_description_topic, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-    [&_robot_description_msg,this](std_msgs::msg::String::SharedPtr msg) { _robot_description_msg = msg->data; });
+  #ifdef TEST_GAZEBO
+    RCLCPP_ERROR_STREAM(get_node()->get_logger(), "TESTING WITH GAZEBO BUILD " );
+    #pragma message("TESTING WITH GAZEBO BUILD ")
+    #include<imm_controller/test/ur_urdf.hpp>
+    _robot_description_msg = robot_urdf;
+  #else
+    auto robot_sub = get_node()->create_subscription<std_msgs::msg::String>(
+      params_.robot_description_topic, rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+      [&_robot_description_msg,this](std_msgs::msg::String::SharedPtr msg) { _robot_description_msg = msg->data; });
 
-  while(_robot_description_msg == "")
-  {
-    // RCLCPP_ERROR_STREAM(get_node()->get_logger(), "_robot_description_msg " << _robot_description_msg);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));  
-  }
+    while(_robot_description_msg == "")
+    {
+      RCLCPP_ERROR_STREAM(get_node()->get_logger(), "_robot_description_msg " << _robot_description_msg);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));  
+    }
+  #endif
 
   kdl_parser::treeFromString(_robot_description_msg,_kdl_tree);
   _kdl_tree.getChain(params_.robot_chain_root,params_.robot_chain_tip,_kdl_chain_robot);
@@ -317,7 +324,7 @@ controller_interface::return_type ImmController::update(
     Eigen::Affine3d aff_fk_robot;
     transformKDLToEigenImpl(_fk_robot,aff_fk_robot);
     // spatialRotation(_tcp_vel,aff_fk_robot.inverse().linear(),&_base_vel);
-    spatialRotation(_tcp_vel,aff_fk_robot.inverse().linear(),&_base_vel);
+    spatialRotation(_tcp_vel,aff_fk_robot.linear(),&_base_vel);
     
 
 
@@ -325,7 +332,8 @@ controller_interface::return_type ImmController::update(
     // _space_integral = spatialIntegration(_space_integral,_base_vel,period.seconds());
     Eigen::Affine3d new_int = spatialIntegration(aff_fk_robot,_base_vel,period.seconds());
     _space_integral = new_int;
-    _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
+    // _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
+    _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
 
 
     Eigen::Matrix<double,6,1> fkV6;

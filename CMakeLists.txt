@@ -5,6 +5,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# add_compile_definitions(TEST_GAZEBO)
+
+
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   generate_parameter_library
