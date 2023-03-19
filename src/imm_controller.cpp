@@ -330,7 +330,7 @@ controller_interface::return_type ImmController::update(
 
     // _space_integral = _base_vel!=Eigen::Matrix<double, 6, 1>::Zero() ?  spatialIntegration(aff_fk_robot,_base_vel,period.seconds()) : _space_integral;
     // _space_integral = spatialIntegration(_space_integral,_base_vel,period.seconds());
-    Eigen::Affine3d new_int = spatialIntegration(aff_fk_robot,_base_vel,period.seconds());
+    Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
     _space_integral = new_int;
     // _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
     _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
@@ -341,9 +341,9 @@ controller_interface::return_type ImmController::update(
     auto error_cart = cartesian_error(_twist_integral,fkV6);
     
     
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.linear.eulerAngles(2,1,0) \n" << _space_integral.linear().eulerAngles(2,1,0) << "\n");
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.translation() \n" << _space_integral.translation() << "\n");
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
+    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral. eulerAngles \n" << eig_to_RPY(_space_integral.linear()) << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.translation() \n" << _space_integral.translation() << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_base_vel \n" << _base_vel << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
     
@@ -395,10 +395,16 @@ controller_interface::return_type ImmController::update(
   Eigen::Affine3d aff_fk_imm;
   transformKDLToEigenImpl(_fk_imm,aff_fk_imm);
   // spatialDualTranformation(_tcp_vel, aff_fk_imm, &_base_vel);
-  spatialRotation(_tcp_vel,aff_fk_imm.inverse().linear(),&_base_vel);
+  spatialRotation(_tcp_vel,aff_fk_imm.linear(),&_base_vel);
 
-  _twist_integral += _base_vel * period.seconds() ;
+  // _twist_integral += _base_vel * period.seconds() ;
   
+    Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
+  _space_integral = new_int;
+  // _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
+  _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
+
+
   Eigen::Matrix<double,6,1> fkV6;
   KDLframetoV6(_fk_imm,fkV6);
   auto error_cart = cartesian_error(_twist_integral,fkV6);
@@ -411,7 +417,22 @@ controller_interface::return_type ImmController::update(
   err_msg.angular.y = error_cart(4);
   err_msg.angular.z = error_cart(5);
   _error_pub->publish(err_msg);
-
+  geometry_msgs::msg::Twist tw_msg;
+  tw_msg.linear.x  = _twist_integral(0);
+  tw_msg.linear.y  = _twist_integral(1);
+  tw_msg.linear.z  = _twist_integral(2);
+  tw_msg.angular.x = _twist_integral(3);
+  tw_msg.angular.y = _twist_integral(4);
+  tw_msg.angular.z = _twist_integral(5);
+  _tw_pub->publish(tw_msg);
+  geometry_msgs::msg::Twist fk_msg;
+  fk_msg.linear.x  = fkV6(0);
+  fk_msg.linear.y  = fkV6(1);
+  fk_msg.linear.z  = fkV6(2);
+  fk_msg.angular.x = fkV6(3);
+  fk_msg.angular.y = fkV6(4);
+  fk_msg.angular.z = fkV6(5);
+  _fk_pub->publish(fk_msg);
 
 
   if(params_.omni)

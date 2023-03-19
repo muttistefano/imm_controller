@@ -340,8 +340,18 @@ private:
 
     Eigen::Matrix<double,3,1> w_a_in_a=T_b_a.linear().transpose()*twist_of_a_in_b.tail(3);
     double amplitude=w_a_in_a.norm();
-    Eigen::AngleAxisd R_ap_in_a=Eigen::AngleAxisd(amplitude*dt,w_a_in_a/amplitude);
-    T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
+    std::cout << "amplitude \n" << amplitude << "\n" <<std::flush ;
+    if (!isnan(amplitude) && std::abs(amplitude) > 0.001)
+    {
+      Eigen::AngleAxisd R_ap_in_a=Eigen::AngleAxisd(amplitude*dt,w_a_in_a/amplitude);
+      T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
+    }
+    else
+    {
+      Eigen::Matrix3d R_ap_in_a = Eigen::Matrix3d::Identity();
+      T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
+    }
+    // T_b_ap.linear()=T_b_a.linear()*R_ap_in_a;
     return T_b_ap;
   }
 

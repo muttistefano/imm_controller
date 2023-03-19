@@ -12,7 +12,6 @@ R"(
 <robot name="ur">
 
 
-  <link name="world"/>
   <link name="base_link"/>
   <link name="base_link_inertia">
     <visual>
@@ -148,8 +147,8 @@ R"(
     </inertial>
   </link>
   <joint name="base_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="world"/>
+    <origin rpy="0.2 0 0.3" xyz="0 0 0"/>
+    <parent link="base_link_sweepee"/>
     <child link="base_link"/>
   </joint>
   <joint name="base_link-base_link_inertia" type="fixed">
@@ -229,6 +228,46 @@ R"(
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
+
+  <link name="base_footprint">
+    <inertial>
+        <mass value="10" />
+        <inertia ixx="0.001" ixy="0.01" ixz="0.01" iyy="0.001" iyz="0.01" izz="0.001" />
+    </inertial>
+    <collision>
+      <origin xyz="0 0 0.005" rpy="0 0 0" />
+      <geometry>
+        <box size="1.02 0.55 0.01"/>
+      </geometry>
+    </collision>
+  </link>  
+  <!-- Base link is the center of the robot's bottom plate -->
+  <link name="base_link_sweepee">
+    <visual>
+      <origin xyz="0 0 0.032" rpy="0 0 -1.57" />
+      <geometry>
+        <mesh filename="package://lampo_description/meshes/sweepee/visual/sweepee.dae"/>
+      </geometry>
+      <material name="Gray">
+        <color rgba="0.5 0.5 0.5 1.0" />
+      </material>
+    </visual>
+    <inertial>
+        <mass value="40" />
+        <inertia ixx="0.48454" ixy="0.01" ixz="0.01" iyy="0.02861" iyz="0.01" izz="0.10178" />
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <xacro:insert_block name="origin"/> 
+    <parent link="base_footprint" />
+    <child link="base_link_sweepee" />
+    <dynamics damping="0.7"/>
+  </joint>
+
+
+
+
 </robot>
 
 )";
