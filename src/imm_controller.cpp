@@ -323,16 +323,13 @@ controller_interface::return_type ImmController::update(
     _jnt_to_pose_solver_robot->JntToCart(_q_robot,_fk_robot);
     Eigen::Affine3d aff_fk_robot;
     transformKDLToEigenImpl(_fk_robot,aff_fk_robot);
-    // spatialRotation(_tcp_vel,aff_fk_robot.inverse().linear(),&_base_vel);
     spatialRotation(_tcp_vel,aff_fk_robot.linear(),&_base_vel);
     
 
 
-    // _space_integral = _base_vel!=Eigen::Matrix<double, 6, 1>::Zero() ?  spatialIntegration(aff_fk_robot,_base_vel,period.seconds()) : _space_integral;
     // _space_integral = spatialIntegration(_space_integral,_base_vel,period.seconds());
     Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
     _space_integral = new_int;
-    // _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
     _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
 
 
@@ -379,11 +376,9 @@ controller_interface::return_type ImmController::update(
     // _q_robot_vel =  ((_J_robot.data.inverse() * (error_cart ))  * 2) + (_J_robot.data.inverse() * _base_vel);
     _q_robot_vel =  (_J_robot.data.inverse() * _base_vel);
     
-    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel \n" << _q_robot_vel << "\n");
 
     for (auto index = 0UL; index < command_interfaces_.size(); ++index)
     {
-      // command_interfaces_[index].set_value(state_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
       command_interfaces_[index].set_value(command_interfaces_[index].get_value() + (period.seconds() * _q_robot_vel(index)));
     }
     return controller_interface::return_type::OK;
@@ -394,14 +389,12 @@ controller_interface::return_type ImmController::update(
 
   Eigen::Affine3d aff_fk_imm;
   transformKDLToEigenImpl(_fk_imm,aff_fk_imm);
-  // spatialDualTranformation(_tcp_vel, aff_fk_imm, &_base_vel);
   spatialRotation(_tcp_vel,aff_fk_imm.linear(),&_base_vel);
 
-  // _twist_integral += _base_vel * period.seconds() ;
   
-    Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
+  // Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
+  Eigen::Affine3d new_int = spatialIntegration(aff_fk_imm,_base_vel,period.seconds());
   _space_integral = new_int;
-  // _twist_integral << _space_integral.translation(),_space_integral.linear().eulerAngles(2,1,0);
   _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
 
 
@@ -446,16 +439,15 @@ controller_interface::return_type ImmController::update(
 
   auto jac_inv = pseudoInverse(_jac_complete);
   Eigen::Matrix< double, 6, 6> KK = Eigen::Matrix< double, 6, 6>::Zero();
-  KK.diagonal() << 1.3, 1.3, 1.3, 1.3 , 1.3 , 1.3;
-  // _q_robot_vel_all =  jac_inv * (_base_vel + KK * error_cart);
-  _q_robot_vel_all =  jac_inv * _base_vel ;
+  KK.diagonal() << 0.3, 0.3, 0.3, 0.3 , 0.3 , 0.3;
+  _q_robot_vel_all =  jac_inv * (_base_vel + KK * error_cart);
+  // _q_robot_vel_all =  jac_inv * _base_vel ;
 
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_twist_integral \n" << _twist_integral << "\n");
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
   // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_q_robot_vel_all \n" << _q_robot_vel_all << "\n");
 
   _q_robot_vel = _q_robot_vel_all.head(6);
-  // _q_robot_vel_mm = _q_robot_vel_all.tail<3>();
 
   for (auto index = 0UL; index < command_interfaces_.size(); ++index)
   {
