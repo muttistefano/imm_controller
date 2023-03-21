@@ -449,7 +449,7 @@ controller_interface::return_type ImmController::update(
   Eigen::Matrix<double, 9, 1> q_err;
   q_err << goal-_q_robot.data,0.0,0.0,0.0;
   // _q_robot_vel_all =  jac_inv * _base_vel + 0.3 * (Eigen::Matrix<double, 9, 9>::Identity() - jac_inv * _jac_complete )*q_err ;
-  _q_robot_vel_all =  jac_inv * (_base_vel + KK * error_cart) + 0.3 * (Eigen::Matrix<double, 9, 9>::Identity() - jac_inv * _jac_complete )*q_err ;
+  _q_robot_vel_all =  jac_inv * (_base_vel + KK * error_cart);// + 0.3 * (Eigen::Matrix<double, 9, 9>::Identity() - jac_inv * _jac_complete )*q_err ;
 
   RCLCPP_INFO_STREAM(get_node()->get_logger(), "q_err \n" << q_err << "\n");
   RCLCPP_INFO_STREAM(get_node()->get_logger(), "PD \n" << 0.3 * (Eigen::Matrix<double, 9, 9>::Identity() - jac_inv * _jac_complete )*q_err << "\n");
