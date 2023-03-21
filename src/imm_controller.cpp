@@ -439,7 +439,7 @@ controller_interface::return_type ImmController::update(
 
   auto jac_inv = pseudoInverse(_jac_complete);
   Eigen::Matrix< double, 6, 6> KK = Eigen::Matrix< double, 6, 6>::Zero();
-  KK.diagonal() << 2.3, 2.3, 2.3, 2.3 , 2.3 , 2.3;
+  KK.diagonal() << 0.5, 0.5, 0.5, 0.5 , 0.5 , 0.5;
   // _q_robot_vel_all =  jac_inv * (_base_vel + KK * error_cart);
   // _q_robot_vel_all =  jac_inv * _base_vel ;
 
