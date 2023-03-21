@@ -392,8 +392,8 @@ controller_interface::return_type ImmController::update(
   spatialRotation(_tcp_vel,aff_fk_imm.linear(),&_base_vel);
 
   
-  // Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
-  Eigen::Affine3d new_int = spatialIntegration(aff_fk_imm,_base_vel,period.seconds());
+  Eigen::Affine3d new_int = spatialIntegration(_space_integral,_base_vel,period.seconds());
+  // Eigen::Affine3d new_int = spatialIntegration(aff_fk_imm,_base_vel,period.seconds());
   _space_integral = new_int;
   _twist_integral << _space_integral.translation(),eig_to_RPY(_space_integral.linear());
 
