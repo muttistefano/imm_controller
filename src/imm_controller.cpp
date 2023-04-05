@@ -53,10 +53,21 @@ controller_interface::CallbackReturn ImmController::read_parameters()
     RCLCPP_ERROR(get_node()->get_logger(), "'joints' parameter was empty");
     return controller_interface::CallbackReturn::ERROR;
   }
-
-  if (params_.interface_name.empty())
+  if (params_.command_joints.empty())
   {
-    RCLCPP_ERROR(get_node()->get_logger(), "'interface_name' parameter was empty");
+    RCLCPP_ERROR(get_node()->get_logger(), "'command_joints' parameter was empty");
+    // std::copy(params_.command_joints.begin(), params_.command_joints.end(), std::back_inserter(params_.joints)); 
+    return controller_interface::CallbackReturn::ERROR;
+  }
+  if (params_.state_interface.empty())
+  {
+    RCLCPP_ERROR(get_node()->get_logger(), "'state_interface' parameter was empty");
+    return controller_interface::CallbackReturn::ERROR;
+  }
+
+  if (params_.control_interface.empty())
+  {
+    RCLCPP_ERROR(get_node()->get_logger(), "'control_interface' parameter was empty");
     return controller_interface::CallbackReturn::ERROR;
   }
 
@@ -90,13 +101,6 @@ controller_interface::CallbackReturn ImmController::read_parameters()
   //   return controller_interface::CallbackReturn::ERROR;
   // }
 
-  for (const auto & joint : params_.joints)
-  {
-    command_interface_types_.push_back(joint + "/" + params_.interface_name);
-  }
-
-
-
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -122,6 +126,9 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
   {
     return ret;
   }
+
+  joint_state_interface_.resize(allowed_interface_types_.size());
+  joint_command_interface_.resize(allowed_interface_types_.size());
 
   joints_command_subscriber_ = get_node()->create_subscription<CmdType>(
     "~/commands", rclcpp::SystemDefaultsQoS(),
@@ -193,67 +200,101 @@ controller_interface::CallbackReturn ImmController::on_configure( const rclcpp_l
 
   }
 
+  // TODO check all
+  // has_position_state_interface_ = contains_interface_type(
+  //   params_.state_interface, hardware_interface::HW_IF_POSITION);
+  // has_velocity_state_interface_ = contains_interface_type(
+  //   params_.state_interface, hardware_interface::HW_IF_VELOCITY);
+  // has_acceleration_state_interface_ = contains_interface_type(
+  //   params_.state_interface, hardware_interface::HW_IF_ACCELERATION);
+
+  // has_position_command_interface_ = contains_interface_type(
+  //   params_.control_interface, hardware_interface::HW_IF_POSITION);
+  // has_velocity_command_interface_ = contains_interface_type(
+  //   params_.control_interface, hardware_interface::HW_IF_VELOCITY);
+  // has_acceleration_command_interface_ = contains_interface_type(
+  //   params_.control_interface, hardware_interface::HW_IF_ACCELERATION);
+  // has_effort_command_interface_ = contains_interface_type(
+  //   params_.control_interface, hardware_interface::HW_IF_EFFORT);
+
   RCLCPP_INFO(get_node()->get_logger(), "configure successful");
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::InterfaceConfiguration ImmController::command_interface_configuration() const
 {
-  controller_interface::InterfaceConfiguration command_interfaces_config;
-  command_interfaces_config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  command_interfaces_config.names = command_interface_types_;
+  std::vector<std::string> command_interfaces_config_names;
+  for (const auto & interface : params_.control_interface)
+  {
+    for (const auto & joint : params_.command_joints)
+    {
+      auto full_name = joint + "/" + interface;
+      command_interfaces_config_names.push_back(full_name);
+    }
+  }
 
-  return command_interfaces_config;
+  return {
+    controller_interface::interface_configuration_type::INDIVIDUAL,
+    command_interfaces_config_names};
 }
 
 controller_interface::InterfaceConfiguration ImmController::state_interface_configuration() const
 {
-  controller_interface::InterfaceConfiguration state_interfaces_config;
-  state_interfaces_config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  //TODO separate ?
-  state_interfaces_config.names = command_interface_types_;
+  std::vector<std::string> state_interfaces_config_names;
+  for (size_t i = 0; i < params_.state_interface.size(); ++i)
+  {
+    const auto & interface = params_.state_interface[i];
+    for (const auto & joint : params_.joints)
+    {
+      auto full_name = joint + "/" + interface;
+      state_interfaces_config_names.push_back(full_name);
+    }
+  }
 
-  return state_interfaces_config;
+  return {
+    controller_interface::interface_configuration_type::INDIVIDUAL, state_interfaces_config_names};
 }
 
 
 controller_interface::CallbackReturn ImmController::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  //  check if we have all resources defined in the "points" parameter
-  //  also verify that we *only* have the resources defined in the "points" parameter
-  // ATTENTION(destogl): Shouldn't we use ordered interface all the time?
-  //TODO state_interfaces_types instead of command
-  std::vector<std::reference_wrapper<hardware_interface::LoanedCommandInterface>>
-    ordered_interfaces;
-  if (
-    !controller_interface::get_ordered_interfaces(
-      command_interfaces_, command_interface_types_, std::string(""), ordered_interfaces) ||
-    command_interface_types_.size() != ordered_interfaces.size())
-  {
-    RCLCPP_ERROR(
-      get_node()->get_logger(), "Expected %zu command interfaces, got %zu",
-      command_interface_types_.size(), ordered_interfaces.size());
-    return controller_interface::CallbackReturn::ERROR;
-  }
 
-  std::vector<std::reference_wrapper<hardware_interface::LoanedStateInterface>>
-    state_ordered_interfaces;
-  if (
-    !controller_interface::get_ordered_interfaces(
-          state_interfaces_, params_.joints, "position",
-          state_ordered_interfaces))
+  for (const auto & interface : params_.state_interface)
   {
-    RCLCPP_ERROR(
-      get_node()->get_logger(), "Expected %zu command interfaces, got %zu",
-      command_interface_types_.size(), state_ordered_interfaces.size());
-    return controller_interface::CallbackReturn::ERROR;
+    auto it =
+      std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
+    auto index = std::distance(allowed_interface_types_.begin(), it);
+    if (!controller_interface::get_ordered_interfaces(
+          state_interfaces_, params_.joints, interface,
+          joint_state_interface_[index]))
+    {
+      RCLCPP_ERROR(
+        get_node()->get_logger(), "Expected %zu '%s' state interfaces, got %zu.", params_.joints.size(),
+        interface.c_str(), joint_state_interface_[index].size());
+      return CallbackReturn::ERROR;
+    }
+  }
+  for (const auto & interface : params_.control_interface)
+  {
+    auto it =
+      std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
+    auto index = std::distance(allowed_interface_types_.begin(), it);
+    if (!controller_interface::get_ordered_interfaces(
+          command_interfaces_, params_.command_joints, interface, joint_command_interface_[index]))
+    {
+      RCLCPP_ERROR(
+        get_node()->get_logger(), "Expected %zu '%s' command interfaces, got %zu.", params_.joints.size(),
+        interface.c_str(), joint_command_interface_[index].size());
+      return CallbackReturn::ERROR;
+    }
   }
 
   // reset command buffer if a command came through callback when controller was inactive
   rt_command_ptr_ = realtime_tools::RealtimeBuffer<std::shared_ptr<CmdType>>(nullptr);
 
-  for (auto index = 0UL; index < state_interfaces_.size(); ++index)
+
+  for (auto index = 0UL; index < params_.joints.size(); ++index)
   {
     _q_robot.data(index) = state_interfaces_[index].get_value();
   }
@@ -308,7 +349,7 @@ controller_interface::return_type ImmController::update(
   //   RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interface.get_value());
   // }
   //TODO check from joint broadcaster how they do
-  for (auto index = 0UL; index < state_interfaces_.size(); ++index)
+  for (auto index = 0UL; index < params_.joints.size(); ++index)
   {
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "stat " << state_interfaces_[index].get_name() << "\n");
     _q_robot.data(index) = state_interfaces_[index].get_value();
@@ -338,7 +379,7 @@ controller_interface::return_type ImmController::update(
     auto error_cart = cartesian_error(_twist_integral,fkV6);
     
     
-    RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral. eulerAngles \n" << eig_to_RPY(_space_integral.linear()) << "\n");
+    // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral. eulerAngles \n" << eig_to_RPY(_space_integral.linear()) << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_space_integral.translation() \n" << _space_integral.translation() << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "fkV6 \n" << fkV6 << "\n");
     // RCLCPP_INFO_STREAM(get_node()->get_logger(), "_base_vel \n" << _base_vel << "\n");

@@ -4,10 +4,20 @@ imm_controller:
     default_value: [],
     description: "Name of the joints to control",
   }
-  interface_name: {
-    type: string,
-    default_value: "",
-    description: "Name of the interface to command",
+  command_joints: {
+    type: string_array,
+    default_value: [],
+    description: "Name of the joints to control",
+  }
+  control_interface: {
+    type: string_array,
+    default_value: [],
+    description: "Names of the control_interface to command",
+  }
+  state_interface: {
+    type: string_array,
+    default_value: [],
+    description: "Names of the state_interface",
   }
   robot_chain_root: {
     type: string,

@@ -20,10 +20,12 @@
 #include <vector>
 #include <chrono>
 #include <math.h>
-
+#include <algorithm> 
+#include <iterator> 
 #include "imm_controller_parameters.hpp"
 
 #include "controller_interface/controller_interface.hpp"
+#include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "imm_controller/visibility_control.h"
 #include "rclcpp/subscription.hpp"
 #include "rclcpp/wait_for_message.hpp"
@@ -114,6 +116,24 @@ private:
    * allowed, controller_interface::CallbackReturn::ERROR otherwise.
    */
   controller_interface::CallbackReturn read_parameters();
+
+  bool has_position_state_interface_ = false;
+  bool has_velocity_state_interface_ = false;
+  bool has_acceleration_state_interface_ = false;
+  bool has_position_command_interface_ = false;
+  bool has_velocity_command_interface_ = false;
+  bool has_acceleration_command_interface_ = false;
+  bool has_effort_command_interface_ = false;
+
+  template <typename T>
+  using InterfaceReferences = std::vector<std::vector<std::reference_wrapper<T>>>;
+
+  InterfaceReferences<hardware_interface::LoanedCommandInterface> joint_command_interface_;
+  InterfaceReferences<hardware_interface::LoanedStateInterface> joint_state_interface_;
+
+  const std::vector<std::string> allowed_interface_types_ = {
+    hardware_interface::HW_IF_POSITION, hardware_interface::HW_IF_VELOCITY,
+    hardware_interface::HW_IF_ACCELERATION};
 
   std::vector<std::string> joint_names_;
   std::string interface_name_;
